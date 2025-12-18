@@ -4,6 +4,7 @@ import { RightSidebar } from './components/RightSidebar';
 import { MainCanvas } from './components/MainCanvas';
 import { GenerationRequest, TaskHistoryItem } from './types';
 import { generateImage, getTaskStatus } from './services/api';
+import { PlusCircle, Image as ImageIcon, History, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Menu } from 'lucide-react';
 
 const DEFAULT_REQUEST: GenerationRequest = {
   model: 'doubao-seedance-4-5',
@@ -41,7 +42,6 @@ const extractImages = (obj: any): string[] => {
     if (typeof item === 'string') {
       const trimmed = item.trim();
       if (isImageUrl(trimmed) && !seen.has(trimmed)) {
-        console.log(`[extractImages] Found URL at ${path}:`, trimmed);
         foundUrls.push(trimmed);
         seen.add(trimmed);
       }
@@ -57,26 +57,17 @@ const extractImages = (obj: any): string[] => {
 
   walk(obj);
 
-  // TODO: APIMart API limitation - when multi-image generation is requested,
-  // the status endpoint only returns 1 of N images, even though all images
-  // are generated (visible in dashboard). Each image has a different random
-  // prefix in the URL, so we cannot derive URLs from pattern matching.
-  // Need to report to APIMart or wait for API fix.
-
-  // Strict scoring for 4K quality to prevent downloading 1024px thumbnails
+  // Strict scoring for 4K quality
   return foundUrls.sort((a, b) => {
     const score = (url: string) => {
       const u = url.toLowerCase();
       let s = 0;
-      // High-priority resolution indicators
       if (u.includes('original')) s += 5000;
       if (u.includes('high_res')) s += 4000;
       if (u.includes('full')) s += 3000;
-      if (u.includes('4096')) s += 6000; // Best match for 4K
+      if (u.includes('4096')) s += 6000;
       if (u.includes('3840')) s += 5500;
       if (u.includes('large')) s += 1000;
-
-      // Low-priority indicators
       if (u.includes('preview')) s -= 2000;
       if (u.includes('thumb')) s -= 3000;
       if (u.includes('1024')) s -= 1000;
@@ -92,25 +83,27 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<TaskHistoryItem[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'create' | 'studio' | 'history'>('create');
+
+  // Desktop Sidebar State
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+
   const isPollingRef = useRef(false);
 
-  const handleSubmit = useCallback(async () => {
+  // Internal submit logic encapsulated to be reused or called directly
+  const internalSubmit = async () => {
     if (!request.prompt) return;
     setIsGenerating(true);
 
-    // Prepare base payload
     const basePayload = { ...request };
     if (basePayload.image_urls && basePayload.image_urls.length === 0) {
       delete basePayload.image_urls;
     }
 
-    // WORKAROUND: Client-Side Batching with Unified History
-    // API has a bug where n>1 tasks only return 1 image in status.
-    // We send N parallel requests but present them as 1 "Batch Task" in UI.
+    // Unified Batch Logic
     const count = basePayload.n || 1;
     const requests = [];
-
-    // Force n=1 for the actual API call
     const singlePayload = { ...basePayload, n: 1 };
 
     for (let i = 0; i < count; i++) {
@@ -118,7 +111,6 @@ export default function App() {
     }
 
     try {
-      // Execute all requests in parallel
       const responses = await Promise.all(requests);
 
       const subTaskIds: string[] = [];
@@ -131,7 +123,6 @@ export default function App() {
           subTaskIds.push(result.task_id);
           successfulResponses.push(result);
         } else {
-          // Handle individual failure
           const errorMsg = response.error?.message || "Unknown error from API";
           if (!firstError) firstError = errorMsg;
           console.error(`Sub-task ${index} failed:`, errorMsg);
@@ -139,18 +130,16 @@ export default function App() {
       });
 
       if (subTaskIds.length > 0) {
-        // Create ONE unified history item for the batch
         const mainId = subTaskIds[0];
-
         const newItem: TaskHistoryItem = {
           id: mainId,
           timestamp: Date.now(),
           prompt: request.prompt,
           status: 'submitted',
-          response: successfulResponses[0], // Store primary response info
+          response: successfulResponses[0],
           params: { ...request },
           subTaskIds: subTaskIds,
-          subTaskStatuses: {} // Will be populated by polling
+          subTaskStatuses: {}
         };
 
         setHistory(prev => [newItem, ...prev]);
@@ -160,7 +149,6 @@ export default function App() {
           console.warn(`Batch started but some sub-tasks failed: ${firstError}`);
         }
       } else {
-        // All failed
         const newItem: TaskHistoryItem = {
           id: `err-${Date.now()}`,
           timestamp: Date.now(),
@@ -188,10 +176,22 @@ export default function App() {
     } finally {
       setIsGenerating(false);
     }
-  }, [request]);
+  };
+
+  const onGenerateClick = async () => {
+    setActiveTab('studio'); // Auto-switch to studio view on mobile
+    await internalSubmit();
+  };
 
   const handleReuseParams = (params: GenerationRequest) => {
     setRequest({ ...params });
+    setActiveTab('create'); // Auto-switch to create view on mobile
+    if (!isLeftSidebarOpen) setIsLeftSidebarOpen(true); // Open sidebar on desktop
+  };
+
+  const handleSelectTask = (id: string) => {
+    setSelectedTaskId(id);
+    setActiveTab('studio'); // Auto-switch to studio view on mobile
   };
 
   useEffect(() => {
@@ -213,13 +213,9 @@ export default function App() {
             let anyFailed = false;
             let batchHasUpdates = false;
 
-            // Poll sub-tasks
             await Promise.all(task.subTaskIds.map(async (subId) => {
-              // Skip if already completed/failed (optional optimization, but polling all ensures we get images)
-              // Actually we should poll until each sub-task is done
               const currentSubStatus = subStatuses[subId]?.status;
               if (currentSubStatus === 'succeeded' || currentSubStatus === 'failed' || currentSubStatus === 'completed') {
-                // Already done, just grab images if succeeded
                 if (subStatuses[subId]?.result) {
                   const imgs = extractImages(subStatuses[subId]);
                   subImages.push(...imgs);
@@ -231,21 +227,17 @@ export default function App() {
               if (apiData) {
                 subStatuses[subId] = apiData;
                 batchHasUpdates = true;
-
                 const statusText = (apiData.status || '').toLowerCase();
-                const isSuccess = ['succeeded', 'success', 'completed', 'done'].includes(statusText);
-                const isFailed = ['failed', 'cancelled', 'error'].includes(statusText);
-
-                if (isSuccess) {
+                if (['succeeded', 'success', 'completed', 'done'].includes(statusText)) {
                   const imgs = extractImages(apiData);
                   subImages.push(...imgs);
-                } else if (isFailed) {
+                } else if (['failed', 'cancelled', 'error'].includes(statusText)) {
                   anyFailed = true;
                 } else {
                   allCompleted = false;
                 }
               } else {
-                allCompleted = false; // Could not reach API
+                allCompleted = false;
               }
             }));
 
@@ -253,24 +245,15 @@ export default function App() {
               const taskIndex = updatedHistory.findIndex(h => h.id === task.id);
               if (taskIndex !== -1) {
                 hasUpdates = true;
-                const newStatus = allCompleted ? (anyFailed ? 'succeeded' : 'succeeded') : 'processing';
-                // Note: We mark as succeeded if at least one finished, to show partial results. 
-                // Or if all completed, even if some failed. 
-                // Simplify: if all sub-tasks are terminal state, then batch is done.
-
                 updatedHistory[taskIndex] = {
                   ...updatedHistory[taskIndex],
                   status: (allCompleted) ? 'succeeded' : 'processing',
                   subTaskStatuses: subStatuses,
                   result: {
                     images: subImages.length > 0 ? subImages : (task.result?.images || []),
-                    has_nsfw_concepts: [] // Aggregate NSFW if needed
+                    has_nsfw_concepts: []
                   }
                 };
-
-                if (allCompleted) {
-                  console.log(`[App] Batch Task ${task.id} finished. Aggregated ${subImages.length} images.`);
-                }
               }
             }
 
@@ -279,32 +262,30 @@ export default function App() {
             const apiData = await getTaskStatus(task.id);
             if (apiData) {
               const taskIndex = updatedHistory.findIndex(h => h.id === task.id);
-              if (taskIndex === -1) continue;
-              const statusText = (apiData.status || '').toLowerCase();
-              const isSuccess = ['succeeded', 'success', 'completed', 'done'].includes(statusText);
-              const isFailed = ['failed', 'cancelled', 'error'].includes(statusText);
-
-              if (isSuccess) {
-                hasUpdates = true;
-                updatedHistory[taskIndex] = {
-                  ...updatedHistory[taskIndex],
-                  status: 'succeeded',
-                  taskStatus: apiData,
-                  result: { images: extractImages(apiData), has_nsfw_concepts: apiData.result?.has_nsfw_concepts || [] }
-                };
-                console.log(`[App] Task ${task.id} succeeded. Extracted ${extractImages(apiData).length} images:`, extractImages(apiData));
-              } else if (isFailed) {
-                hasUpdates = true;
-                updatedHistory[taskIndex] = {
-                  ...updatedHistory[taskIndex],
-                  status: 'failed',
-                  taskStatus: apiData,
-                  error: apiData.error?.message || "Task failure",
-                  errorDetails: apiData.error
-                };
-              } else if (updatedHistory[taskIndex].status !== 'processing') {
-                updatedHistory[taskIndex].status = 'processing';
-                hasUpdates = true;
+              if (taskIndex !== -1) {
+                const statusText = (apiData.status || '').toLowerCase();
+                if (['succeeded', 'success', 'completed', 'done'].includes(statusText)) {
+                  hasUpdates = true;
+                  updatedHistory[taskIndex] = {
+                    ...updatedHistory[taskIndex],
+                    status: 'succeeded',
+                    taskStatus: apiData,
+                    result: { images: extractImages(apiData), has_nsfw_concepts: apiData.result?.has_nsfw_concepts || [] }
+                  };
+                  console.log(`[App] Task ${task.id} succeeded. Extracted ${extractImages(apiData).length} images:`, extractImages(apiData));
+                } else if (['failed', 'cancelled', 'error'].includes(statusText)) {
+                  hasUpdates = true;
+                  updatedHistory[taskIndex] = {
+                    ...updatedHistory[taskIndex],
+                    status: 'failed',
+                    taskStatus: apiData,
+                    error: apiData.error?.message || "Task failure",
+                    errorDetails: apiData.error
+                  };
+                } else if (updatedHistory[taskIndex].status !== 'processing') {
+                  updatedHistory[taskIndex].status = 'processing';
+                  hasUpdates = true;
+                }
               }
             }
           }
@@ -320,17 +301,101 @@ export default function App() {
   const activeTask = history.find(h => h.id === selectedTaskId) || null;
 
   return (
-    <div className="flex h-screen w-screen bg-background text-slate-100 overflow-hidden font-sans">
-      <div className="flex w-full flex-col lg:flex-row h-full overflow-hidden">
-        <div className="lg:h-full lg:w-80 border-b lg:border-b-0 lg:border-r border-slate-800/50 flex-shrink-0">
-          <LeftSidebar request={request} onRequestChange={setRequest} onSubmit={handleSubmit} isGenerating={isGenerating} />
+    <div className="flex h-screen w-screen bg-[#020617] text-slate-100 overflow-hidden font-sans flex-col lg:flex-row relative">
+
+      {/* Background Pattern - Dot Grid */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none z-0"
+        style={{
+          backgroundImage: 'radial-gradient(#3b82f6 1px, transparent 1px)',
+          backgroundSize: '24px 24px'
+        }}
+      />
+
+      {/* Mobile Content Area - Uses flex-1 to fill space above nav */}
+      <div className="flex-1 w-full flex overflow-hidden lg:flex-row flex-col relative h-full z-10">
+
+        {/* Left Sidebar (Create) */}
+        {/* Mobile: Full Screen if Active */}
+        {/* Desktop: Collapsible Floating Panel */}
+        <div className={`
+          flex-shrink-0 transition-all duration-300 ease-in-out relative
+          ${activeTab === 'create' ? 'flex flex-1 h-full w-full' : 'hidden lg:flex'}
+          lg:border-r border-white/10 lg:bg-slate-900/80 lg:backdrop-blur-xl
+          ${isLeftSidebarOpen ? 'lg:w-[340px]' : 'lg:w-0 lg:overflow-hidden lg:border-none'}
+        `}>
+          <div className="w-full h-full overflow-hidden">
+            <LeftSidebar request={request} onRequestChange={setRequest} onSubmit={onGenerateClick} isGenerating={isGenerating} />
+          </div>
         </div>
-        <div className="flex-1 h-[60vh] lg:h-full relative flex flex-col min-w-0">
+
+        {/* Desktop Left Toggle Button */}
+        <div className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-50">
+          <button
+            onClick={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
+            className={`p-1.5 rounded-r-full bg-slate-800 text-slate-400 hover:text-white hover:bg-blue-600 transition-all shadow-lg border-y border-r border-white/10 ${isLeftSidebarOpen ? 'translate-x-[340px]' : 'translate-x-0'}`}
+            style={{ transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+          >
+            {isLeftSidebarOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
+          </button>
+        </div>
+
+
+        {/* Main Canvas (Studio) */}
+        <div className={`flex-1 relative flex flex-col min-w-0 bg-transparent
+          ${activeTab === 'studio' ? 'flex h-full w-full' : 'hidden lg:flex lg:h-full'}
+        `}>
           <MainCanvas activeTask={activeTask} isGenerating={isGenerating} onClear={() => setSelectedTaskId(null)} />
         </div>
-        <div className="lg:h-full lg:w-72 border-t lg:border-t-0 lg:border-l border-slate-800/50 flex-shrink-0 bg-surface">
-          <RightSidebar history={history} selectedTaskId={selectedTaskId} onSelectTask={setSelectedTaskId} onReuseParams={handleReuseParams} />
+
+
+        {/* Desktop Right Toggle Button */}
+        <div className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 z-50">
+          <button
+            onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
+            className={`p-1.5 rounded-l-full bg-slate-800 text-slate-400 hover:text-white hover:bg-blue-600 transition-all shadow-lg border-y border-l border-white/10 ${isRightSidebarOpen ? '-translate-x-[300px]' : 'translate-x-0'}`}
+            style={{ transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+          >
+            {isRightSidebarOpen ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
+          </button>
         </div>
+
+        {/* Right Sidebar (History) */}
+        <div className={`
+          flex-shrink-0 transition-all duration-300 ease-in-out relative
+          ${activeTab === 'history' ? 'flex flex-1 h-full w-full' : 'hidden lg:flex'}
+          lg:border-l border-white/10 lg:bg-slate-900/80 lg:backdrop-blur-xl
+          ${isRightSidebarOpen ? 'lg:w-[300px]' : 'lg:w-0 lg:overflow-hidden lg:border-none'}
+        `}>
+          <div className="w-full h-full overflow-hidden">
+            <RightSidebar history={history} selectedTaskId={selectedTaskId} onSelectTask={handleSelectTask} onReuseParams={handleReuseParams} />
+          </div>
+        </div>
+
+      </div>
+
+      {/* Mobile Bottom Navigation - Glassmorphism */}
+      <div className="lg:hidden h-16 bg-slate-900/90 backdrop-blur-lg border-t border-white/10 flex items-center justify-around flex-shrink-0 z-50 pb-safe shadow-2xl">
+        <button
+          onClick={() => setActiveTab('create')}
+          className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform ${activeTab === 'create' ? 'text-blue-500' : 'text-slate-500'}`}
+        >
+          <PlusCircle size={24} strokeWidth={activeTab === 'create' ? 2.5 : 2} />
+          <span className="text-[10px] font-medium">Create</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('studio')}
+          className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform ${activeTab === 'studio' ? 'text-blue-500' : 'text-slate-500'}`}
+        >
+          <ImageIcon size={24} strokeWidth={activeTab === 'studio' ? 2.5 : 2} />
+          <span className="text-[10px] font-medium">Studio</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform ${activeTab === 'history' ? 'text-blue-500' : 'text-slate-500'}`}
+        >
+          <History size={24} strokeWidth={activeTab === 'history' ? 2.5 : 2} />
+          <span className="text-[10px] font-medium">History</span>
+        </button>
       </div>
     </div>
   );
