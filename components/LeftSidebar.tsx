@@ -65,7 +65,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
           <Sparkles className="w-4 h-4 text-white" />
         </div>
-        <h1 className="font-bold text-lg text-white tracking-tight">GenStudio <span className="text-blue-500">4.5</span></h1>
+        <h1 className="font-bold text-lg text-white tracking-tight">Vidma Studio <span className="text-blue-500">AI</span></h1>
       </div>
 
       <div className="p-4 space-y-8">
@@ -90,8 +90,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   key={res.value}
                   onClick={() => handleChange('resolution', res.value)}
                   className={`px-4 py-1.5 text-[11px] font-bold rounded-md transition-all ${request.resolution === res.value
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-slate-500 hover:text-slate-300'
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'text-slate-500 hover:text-slate-300'
                     }`}
                 >
                   {res.value}
@@ -106,8 +106,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 key={ratio.value}
                 onClick={() => handleChange('size', ratio.value)}
                 className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all aspect-square ${request.size === ratio.value
-                    ? 'bg-blue-500/10 border-blue-500 text-blue-400'
-                    : 'bg-[#0f172a]/40 border-slate-800/50 text-slate-500 hover:border-slate-700 hover:text-slate-400'
+                  ? 'bg-blue-500/10 border-blue-500 text-blue-400'
+                  : 'bg-[#0f172a]/40 border-slate-800/50 text-slate-500 hover:border-slate-700 hover:text-slate-400'
                   }`}
               >
                 {PRESET_ICONS[ratio.value]}
@@ -147,8 +147,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 key={n}
                 onClick={() => handleChange('n', n)}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${request.n === n
-                    ? 'bg-blue-600 text-white shadow-lg'
-                    : 'bg-[#0f172a] text-slate-500 border border-slate-700/50 hover:border-blue-500/50 hover:text-blue-400'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-[#0f172a] text-slate-500 border border-slate-700/50 hover:border-blue-500/50 hover:text-blue-400'
                   }`}
               >
                 {n}
