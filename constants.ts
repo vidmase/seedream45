@@ -1,4 +1,4 @@
-export const API_KEY = import.meta.env.VITE_API_KEY || "sk-2ZzpRXDq6y7M6MHyAvTAhLWYYcJ9uz68yzL4f4xOz5lH17Q8";
+export const API_KEY = import.meta.env.VITE_API_KEY || "";
 export const API_URL = "https://api.apimart.ai/v1/images/generations";
 export const API_TASK_URL = "https://api.apimart.ai/v1/tasks";
 
