@@ -1,0 +1,5 @@
+{
+  "name": "Seedream GenStudio",
+  "description": "A professional-grade image generation and editing workspace using the Seedream-4.5 API. Features a 3-panel layout for controls, canvas, and task history.",
+  "requestFramePermissions": []
+}
