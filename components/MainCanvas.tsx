@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Loader2, Download, ExternalLink, ShieldAlert, Sparkles, X, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Layers, Loader2, Download, ShieldAlert, Sparkles, X, AlertTriangle, ChevronLeft, ChevronRight, Wand2 } from 'lucide-react';
 import { TaskHistoryItem } from '../types';
 import { Button } from './ui/Button';
 
@@ -63,70 +63,127 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
   const prevImage = () => { if (images.length > 1) { setImgLoaded(false); setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length); } };
 
   return (
-    <div className="flex-1 bg-[#050810] relative overflow-hidden flex flex-col h-full">
-      <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #3b82f6 1px, transparent 0)', backgroundSize: '48px 48px' }}></div>
+    <div className="flex-1 bg-transparent relative overflow-hidden flex flex-col h-full items-center justify-center">
 
-      <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-20 pointer-events-none">
+      {/* Top Bar Overlay */}
+      <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-20 pointer-events-none">
         <div className="flex space-x-2 pointer-events-auto">
-          <div className="px-3 py-1.5 bg-slate-900/80 backdrop-blur-xl rounded-full text-[10px] font-bold text-slate-400 border border-slate-800 uppercase tracking-widest flex items-center shadow-2xl">
-            <Layers className="w-3 h-3 mr-2 text-blue-500" />
-            Active Canvas
-          </div>
+          {activeTask && (
+            <div className="px-4 py-2 bg-surface/80 backdrop-blur-xl rounded-full text-[10px] font-bold text-slate-400 border border-white/5 uppercase tracking-widest flex items-center shadow-lg animate-in fade-in slide-in-from-top-4">
+              <Layers className="w-3 h-3 mr-2 text-primary" />
+              Canvas Active
+            </div>
+          )}
         </div>
         {activeTask && (
-          <div className="pointer-events-auto">
-            <button onClick={onClear} className="p-2 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-full text-slate-500 hover:text-white hover:bg-red-500/20 transition-all shadow-2xl">
-              <X className="w-4 h-4" />
+          <div className="pointer-events-auto animate-in fade-in slide-in-from-top-4">
+            <button
+              onClick={onClear}
+              className="p-2.5 bg-surface/50 backdrop-blur-md border border-white/5 rounded-full text-slate-500 hover:text-white hover:bg-red-500/10 hover:border-red-500/20 transition-all shadow-lg group"
+            >
+              <X className="w-4 h-4 group-hover:rotate-90 transition-transform" />
             </button>
           </div>
         )}
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-6 z-10 w-full overflow-hidden">
+      <div className="flex-1 flex items-center justify-center w-full h-full relative z-10 p-4 lg:p-10">
+
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-700">
+          // Loading State
+          <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-700 relative">
+            <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full mix-blend-screen animate-pulse-fast pointer-events-none" />
             <div className="relative mb-8">
-              <div className="w-20 h-20 rounded-full border-4 border-slate-900/50"></div>
-              <div className="absolute inset-0 w-20 h-20 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center"><Sparkles className="text-blue-500 w-6 h-6 animate-pulse" /></div>
+              {/* Outer Ring */}
+              <div className="w-32 h-32 rounded-full border border-white/5 shadow-[0_0_50px_rgba(59,130,246,0.2)] animate-spin-slow"></div>
+              {/* Inner Spinner */}
+              <div className="absolute inset-0 w-32 h-32 rounded-full border-2 border-t-primary border-r-transparent border-b-primary/30 border-l-transparent animate-spin"></div>
+              {/* Core */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-20 h-20 bg-surface/50 backdrop-blur-md rounded-full border border-white/10 flex items-center justify-center shadow-inner">
+                  <Sparkles className="text-primary w-8 h-8 animate-pulse" />
+                </div>
+              </div>
             </div>
-            <h3 className="text-lg font-bold text-white tracking-widest uppercase italic">Masterpiece Processing</h3>
-            <p className="text-[10px] text-slate-500 mt-2 font-mono uppercase tracking-[0.3em]">Seedream Engine 4.5 4K Active</p>
+            <h3 className="text-2xl font-black text-white tracking-widest uppercase italic bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-white animate-shine bg-[length:200%_auto]">
+              Creating
+            </h3>
+            <p className="text-[10px] text-slate-400 mt-3 font-mono uppercase tracking-[0.3em] flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              GPU Cluster Active
+            </p>
           </div>
+
         ) : activeTask && activeTask.status === 'succeeded' && images.length ? (
-          <div className="relative w-full h-full flex items-center justify-center flex-col animate-in fade-in duration-1000">
+          // Result State
+          <div className="relative w-full h-full flex items-center justify-center flex-col animate-in fade-in zoom-in-95 duration-700">
             {isSafetyViolation ? (
-              <div className="flex flex-col items-center gap-4 text-amber-500 bg-amber-500/5 p-12 rounded-3xl border border-amber-500/20 backdrop-blur-3xl shadow-2xl">
-                <ShieldAlert size={64} className="opacity-50" />
-                <p className="font-bold tracking-widest uppercase text-sm">Content Filter Triggered</p>
+              <div className="flex flex-col items-center gap-6 text-amber-500 bg-amber-500/5 p-16 rounded-[2rem] border border-amber-500/20 backdrop-blur-3xl shadow-[0_0_50px_rgba(245,158,11,0.1)]">
+                <ShieldAlert size={80} className="opacity-50 animate-pulse" />
+                <div className="text-center space-y-2">
+                  <h3 className="font-black tracking-widest uppercase text-lg">Safety Guard Triggered</h3>
+                  <p className="text-amber-500/60 text-xs tracking-wide max-w-xs mx-auto">The generated content was flagged by our safety systems.</p>
+                </div>
               </div>
             ) : (
               <>
-                <div className="relative group max-w-full max-h-[70vh] rounded-2xl overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-slate-800/50 bg-slate-900/20">
-                  <img
-                    src={currentImageUrl}
-                    alt="Output"
-                    className={`max-w-full max-h-[70vh] object-contain transition-all duration-1000 ${imgLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
-                    onLoad={() => setImgLoaded(true)}
-                  />
-                  {!imgLoaded && <div className="absolute inset-0 flex items-center justify-center bg-slate-950/50"><Loader2 className="animate-spin text-blue-500" /></div>}
-                  {images.length > 1 && imgLoaded && (
-                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-4 flex justify-between pointer-events-none">
-                      <button onClick={prevImage} className="p-3 rounded-full bg-black/60 text-white hover:bg-blue-600 transition-all opacity-0 group-hover:opacity-100 pointer-events-auto backdrop-blur-md border border-white/10"><ChevronLeft size={24} /></button>
-                      <button onClick={nextImage} className="p-3 rounded-full bg-black/60 text-white hover:bg-blue-600 transition-all opacity-0 group-hover:opacity-100 pointer-events-auto backdrop-blur-md border border-white/10"><ChevronRight size={24} /></button>
-                    </div>
-                  )}
+                <div className="relative group w-full h-full flex items-center justify-center">
+                  {/* Image Container */}
+                  <div className="relative max-w-full max-h-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-surface/40 backdrop-blur-sm transition-transform duration-500">
+                    <img
+                      src={currentImageUrl}
+                      alt="Output"
+                      className={`max-w-full max-h-[70vh] lg:max-h-[80vh] object-contain transition-all duration-700 ease-out ${imgLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-lg'}`}
+                      onLoad={() => setImgLoaded(true)}
+                    />
+
+                    {!imgLoaded && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-surface/50 backdrop-blur-md">
+                        <Loader2 className="animate-spin text-primary w-10 h-10" />
+                      </div>
+                    )}
+
+                    {/* Navigation Buttons for Gallery */}
+                    {images.length > 1 && imgLoaded && (
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-4 flex justify-between pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <button onClick={prevImage} className="p-4 rounded-full bg-black/40 text-white hover:bg-primary hover:scale-110 transition-all pointer-events-auto backdrop-blur-md border border-white/10 shadow-lg">
+                          <ChevronLeft size={24} />
+                        </button>
+                        <button onClick={nextImage} className="p-4 rounded-full bg-black/40 text-white hover:bg-primary hover:scale-110 transition-all pointer-events-auto backdrop-blur-md border border-white/10 shadow-lg">
+                          <ChevronRight size={24} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="mt-8 flex flex-col items-center gap-4">
-                  <Button variant="primary" size="lg" onClick={() => handleDownload(currentImageUrl)} disabled={isDownloading || !imgLoaded} className="px-12 rounded-full h-14 font-black tracking-widest shadow-[0_0_40px_rgba(59,130,246,0.3)] border border-white/10 hover:scale-105 transform transition-all active:scale-95">
-                    {isDownloading ? <Loader2 className="animate-spin mr-3" /> : <Download className="mr-3 w-5 h-5" />}
-                    {isDownloading ? 'Downloading Asset...' : 'Acquire 4K Masterpiece'}
+                {/* Actions Bar */}
+                <div className="absolute bottom-8 flex flex-col items-center gap-6 animate-in slide-in-from-bottom-10 fade-in duration-700 delay-300 z-50">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    onClick={() => handleDownload(currentImageUrl)}
+                    disabled={isDownloading || !imgLoaded}
+                    className="px-10 h-14 rounded-2xl font-black tracking-widest shadow-[0_0_40px_rgba(59,130,246,0.4)] border border-primary/20 hover:scale-105 transform transition-all active:scale-95 bg-surface/80 backdrop-blur-md hover:bg-primary group"
+                  >
+                    {isDownloading ? <Loader2 className="animate-spin mr-3" /> : <Download className="mr-3 w-5 h-5 group-hover:-translate-y-1 transition-transform" />}
+                    {isDownloading ? 'Acquiring...' : 'Save Masterpiece'}
                   </Button>
+
                   {images.length > 1 && (
-                    <div className="flex gap-2 mt-4 px-4 py-2 bg-slate-900/40 rounded-2xl border border-slate-800 backdrop-blur-xl">
+                    <div className="flex gap-3 px-4 py-3 bg-surface/60 rounded-2xl border border-white/5 backdrop-blur-xl shadow-2xl">
                       {images.map((img, idx) => (
-                        <button key={idx} onClick={() => { setImgLoaded(false); setActiveImageIndex(idx); }} className={`w-10 h-10 rounded-lg overflow-hidden border-2 transition-all ${activeImageIndex === idx ? 'border-blue-500 scale-110 shadow-lg' : 'border-transparent opacity-40 hover:opacity-100'}`}>
+                        <button
+                          key={idx}
+                          onClick={() => { setImgLoaded(false); setActiveImageIndex(idx); }}
+                          className={`
+                            w-12 h-12 rounded-xl overflow-hidden border-2 transition-all duration-300 
+                            ${activeImageIndex === idx
+                              ? 'border-primary scale-110 shadow-lg ring-2 ring-primary/20'
+                              : 'border-transparent opacity-50 hover:opacity-100 hover:scale-105'
+                            }
+                          `}
+                        >
                           <img src={img} className="w-full h-full object-cover" alt="thumb" />
                         </button>
                       ))}
@@ -137,19 +194,36 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
             )}
           </div>
         ) : activeTask && activeTask.status === 'failed' ? (
-          <div className="max-w-md w-full bg-red-500/5 border border-red-500/20 rounded-3xl p-12 text-center backdrop-blur-3xl animate-in zoom-in-95 duration-500 shadow-2xl">
-            <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-6 opacity-80" />
+          // Failed State
+          <div className="max-w-md w-full bg-red-500/5 border border-red-500/20 rounded-[2rem] p-12 text-center backdrop-blur-3xl animate-in zoom-in-95 duration-500 shadow-[0_0_60px_rgba(239,68,68,0.1)]">
+            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/20">
+              <AlertTriangle className="w-10 h-10 text-red-500 opacity-80" />
+            </div>
             <h3 className="text-xl font-black text-white mb-2 tracking-widest uppercase">Generation Fault</h3>
-            <p className="text-slate-500 text-xs mb-8 uppercase tracking-widest leading-loose">{activeTask.error || "System logic failure."}</p>
-            <Button variant="secondary" onClick={onClear} className="rounded-full px-10 border-red-500/20">Acknowledge</Button>
+            <p className="text-slate-400 text-xs mb-8 uppercase tracking-widest leading-loose font-mono">{activeTask.error || "Unknown system error"}</p>
+            <Button variant="secondary" onClick={onClear} className="rounded-xl px-10 border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-200">Dismiss</Button>
           </div>
         ) : (
-          <div className="text-center opacity-20 pointer-events-none select-none flex flex-col items-center">
-            <div className="w-48 h-48 rounded-full border border-slate-800 flex items-center justify-center mb-10 shadow-[inset_0_0_50px_rgba(0,0,0,0.5)]">
-              <Layers size={64} className="text-slate-500" />
+          // Idle Hero State
+          <div className="text-center opacity-40 pointer-events-none select-none flex flex-col items-center animate-in fade-in duration-1000">
+            <div className="relative mb-12 group">
+              <div className="absolute inset-0 bg-primary/20 blur-[80px] rounded-full mix-blend-screen animate-pulse-slow" />
+              <div className="w-64 h-64 rounded-full border border-white/5 flex items-center justify-center bg-gradient-to-br from-surface/50 to-transparent backdrop-blur-sm shadow-2xl">
+                <Wand2 size={80} className="text-slate-600 group-hover:text-primary/50 transition-colors duration-700" strokeWidth={1} />
+              </div>
+
+              {/* Decorative Orbits */}
+              <div className="absolute inset-0 rounded-full border border-dashed border-white/5 animate-spin-slow opacity-30" style={{ animationDuration: '20s' }} />
+              <div className="absolute -inset-8 rounded-full border border-white/5 animate-spin opacity-20" style={{ animationDuration: '30s', animationDirection: 'reverse' }} />
             </div>
-            <h3 className="text-3xl font-black text-slate-500 tracking-[0.5em] uppercase italic">Studio Idle</h3>
-            <p className="text-slate-600 text-xs mt-4 tracking-[0.3em] uppercase">Ready for instruction</p>
+            <h3 className="text-5xl font-black text-slate-700 tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-slate-600 to-slate-800">
+              Vidma Studio
+            </h3>
+            <p className="text-slate-600 text-xs mt-6 tracking-[0.4em] uppercase font-bold flex items-center gap-3">
+              <span className="w-8 h-[1px] bg-slate-700" />
+              Ready for Creation
+              <span className="w-8 h-[1px] bg-slate-700" />
+            </p>
           </div>
         )}
       </div>

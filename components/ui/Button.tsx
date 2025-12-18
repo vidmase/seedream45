@@ -6,21 +6,21 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
 }
 
-export const Button: React.FC<ButtonProps> = ({ 
-  children, 
-  variant = 'primary', 
-  size = 'md', 
+export const Button: React.FC<ButtonProps> = ({
+  children,
+  variant = 'primary',
+  size = 'md',
   fullWidth = false,
   className = '',
-  ...props 
+  ...props
 }) => {
-  const baseStyle = "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:pointer-events-none";
-  
+  const baseStyle = "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:pointer-events-none active:scale-95";
+
   const variants = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-lg shadow-blue-900/20",
-    secondary: "bg-surface text-slate-200 hover:bg-slate-700 border border-slate-700 focus:ring-slate-500",
-    ghost: "text-slate-400 hover:text-white hover:bg-slate-800",
-    danger: "bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20"
+    primary: "bg-primary text-white hover:bg-blue-600 focus:ring-blue-500 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 border border-transparent",
+    secondary: "bg-surface text-slate-200 hover:bg-slate-800 border border-white/10 hover:border-white/20 focus:ring-slate-500 backdrop-blur-sm",
+    ghost: "text-slate-400 hover:text-white hover:bg-white/5",
+    danger: "bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/30"
   };
 
   const sizes = {
@@ -32,7 +32,7 @@ export const Button: React.FC<ButtonProps> = ({
   const widthClass = fullWidth ? "w-full" : "";
 
   return (
-    <button 
+    <button
       className={`${baseStyle} ${variants[variant]} ${sizes[size]} ${widthClass} ${className}`}
       {...props}
     >

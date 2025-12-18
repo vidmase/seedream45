@@ -1,10 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LeftSidebar } from './components/LeftSidebar';
 import { RightSidebar } from './components/RightSidebar';
 import { MainCanvas } from './components/MainCanvas';
 import { GenerationRequest, TaskHistoryItem } from './types';
 import { generateImage, getTaskStatus } from './services/api';
-import { PlusCircle, Image as ImageIcon, History, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Menu } from 'lucide-react';
+import { PlusCircle, Image as ImageIcon, History, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Terminal } from 'lucide-react';
 
 const DEFAULT_REQUEST: GenerationRequest = {
   model: 'doubao-seedance-4-5',
@@ -146,7 +146,7 @@ export default function App() {
         setSelectedTaskId(mainId);
 
         if (firstError) {
-          console.warn(`Batch started but some sub-tasks failed: ${firstError}`);
+          console.warn(`Batch started but sub-tasks failed: ${firstError}`);
         }
       } else {
         const newItem: TaskHistoryItem = {
@@ -301,39 +301,45 @@ export default function App() {
   const activeTask = history.find(h => h.id === selectedTaskId) || null;
 
   return (
-    <div className="flex h-screen w-screen bg-[#020617] text-slate-100 overflow-hidden font-sans flex-col lg:flex-row relative">
+    <div className="flex h-screen w-screen bg-background text-slate-100 overflow-hidden font-sans flex-col lg:flex-row relative selection:bg-primary/30 selection:text-white">
 
-      {/* Background Pattern - Dot Grid */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none z-0"
-        style={{
-          backgroundImage: 'radial-gradient(#3b82f6 1px, transparent 1px)',
-          backgroundSize: '24px 24px'
-        }}
-      />
+      {/* Background Effects */}
+      <div className="absolute inset-0 z-0 bg-grid-pattern opacity-[0.15] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-pulse-fast" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-pulse-fast" style={{ animationDelay: '1s' }} />
 
       {/* Mobile Content Area - Uses flex-1 to fill space above nav */}
-      <div className="flex-1 w-full flex overflow-hidden lg:flex-row flex-col relative h-full z-10">
+      <div className="flex-1 w-full flex overflow-hidden lg:flex-row flex-col relative h-full z-10 backdrop-blur-[1px]">
 
         {/* Left Sidebar (Create) */}
         {/* Mobile: Full Screen if Active */}
         {/* Desktop: Collapsible Floating Panel */}
-        <div className={`
-          flex-shrink-0 transition-all duration-300 ease-in-out relative
-          ${activeTab === 'create' ? 'flex flex-1 h-full w-full' : 'hidden lg:flex'}
-          lg:border-r border-white/10 lg:bg-slate-900/80 lg:backdrop-blur-xl
-          ${isLeftSidebarOpen ? 'lg:w-[340px]' : 'lg:w-0 lg:overflow-hidden lg:border-none'}
-        `}>
-          <div className="w-full h-full overflow-hidden">
+        {/* Left Sidebar (Create) */}
+        {/* Mobile: Full Screen if Active */}
+        {/* Desktop: Collapsible Floating Panel */}
+        <div
+          className={`
+            flex-shrink-0 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) relative z-40
+            ${activeTab === 'create' ? 'flex flex-1 h-full w-full' : 'hidden lg:flex'}
+            lg:flex-none
+          `}
+          style={{ width: isLeftSidebarOpen ? '380px' : '0px' }}
+        >
+          <div className="w-full h-full overflow-hidden border-r border-white/5 glass-panel relative z-10">
             <LeftSidebar request={request} onRequestChange={setRequest} onSubmit={onGenerateClick} isGenerating={isGenerating} />
           </div>
-        </div>
 
-        {/* Desktop Left Toggle Button */}
-        <div className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-50">
+          {/* Desktop Toggle Button - Attached to Sidebar */}
           <button
             onClick={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
-            className={`p-1.5 rounded-r-full bg-slate-800 text-slate-400 hover:text-white hover:bg-blue-600 transition-all shadow-lg border-y border-r border-white/10 ${isLeftSidebarOpen ? 'translate-x-[340px]' : 'translate-x-0'}`}
-            style={{ transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+            className={`
+              hidden lg:flex absolute top-1/2 left-full -translate-y-1/2 z-[100]
+              w-6 h-12 rounded-r-xl bg-surface border border-l-0 border-white/10 text-slate-400 
+              hover:text-white hover:bg-primary hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] 
+              transition-all duration-300 backdrop-blur-md shadow-lg items-center justify-center
+              ${!isLeftSidebarOpen ? 'bg-surface/80 opacity-70 hover:opacity-100' : ''}
+              cursor-pointer pointer-events-auto
+            `}
           >
             {isLeftSidebarOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
           </button>
@@ -341,60 +347,73 @@ export default function App() {
 
 
         {/* Main Canvas (Studio) */}
-        <div className={`flex-1 relative flex flex-col min-w-0 bg-transparent
+        <div className={`flex-1 relative flex flex-col min-w-0 bg-transparent z-10
           ${activeTab === 'studio' ? 'flex h-full w-full' : 'hidden lg:flex lg:h-full'}
         `}>
           <MainCanvas activeTask={activeTask} isGenerating={isGenerating} onClear={() => setSelectedTaskId(null)} />
         </div>
 
 
-        {/* Desktop Right Toggle Button */}
-        <div className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 z-50">
-          <button
-            onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
-            className={`p-1.5 rounded-l-full bg-slate-800 text-slate-400 hover:text-white hover:bg-blue-600 transition-all shadow-lg border-y border-l border-white/10 ${isRightSidebarOpen ? '-translate-x-[300px]' : 'translate-x-0'}`}
-            style={{ transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-          >
-            {isRightSidebarOpen ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
-          </button>
-        </div>
-
         {/* Right Sidebar (History) */}
-        <div className={`
-          flex-shrink-0 transition-all duration-300 ease-in-out relative
-          ${activeTab === 'history' ? 'flex flex-1 h-full w-full' : 'hidden lg:flex'}
-          lg:border-l border-white/10 lg:bg-slate-900/80 lg:backdrop-blur-xl
-          ${isRightSidebarOpen ? 'lg:w-[300px]' : 'lg:w-0 lg:overflow-hidden lg:border-none'}
-        `}>
-          <div className="w-full h-full overflow-hidden">
+        <div
+          className={`
+            flex-shrink-0 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) relative z-40
+            ${activeTab === 'history' ? 'flex flex-1 h-full w-full' : 'hidden lg:flex'}
+            lg:flex-none
+          `}
+          style={{ width: isRightSidebarOpen ? '320px' : '0px' }}
+        >
+          <div className="w-full h-full overflow-hidden border-l border-white/5 glass-panel relative z-10">
             <RightSidebar history={history} selectedTaskId={selectedTaskId} onSelectTask={handleSelectTask} onReuseParams={handleReuseParams} />
           </div>
+
+          {/* Desktop Toggle Button - Attached to Sidebar */}
+          <button
+            onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
+            className={`
+              hidden lg:flex absolute top-1/2 right-full -translate-y-1/2 z-50
+              w-6 h-12 rounded-l-xl bg-surface border border-r-0 border-white/10 text-slate-400 
+              hover:text-white hover:bg-primary hover:shadow-[0_0_15px_rgba(59,130,246,0.5)]
+              transition-all duration-300 backdrop-blur-md shadow-lg items-center justify-center
+              ${!isRightSidebarOpen ? 'bg-surface/80 opacity-70 hover:opacity-100' : ''}
+              cursor-pointer pointer-events-auto
+            `}
+          >
+            {isRightSidebarOpen ? <PanelRightClose size={14} /> : <PanelLeftOpen size={14} className="rotate-180" />}
+          </button>
         </div>
 
       </div>
 
       {/* Mobile Bottom Navigation - Glassmorphism */}
-      <div className="lg:hidden h-16 bg-slate-900/90 backdrop-blur-lg border-t border-white/10 flex items-center justify-around flex-shrink-0 z-50 pb-safe shadow-2xl">
+      <div className="lg:hidden h-20 bg-surface/80 backdrop-blur-xl border-t border-white/10 flex items-center justify-around flex-shrink-0 z-50 pb-safe shadow-2xl relative">
+        <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
         <button
           onClick={() => setActiveTab('create')}
-          className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform ${activeTab === 'create' ? 'text-blue-500' : 'text-slate-500'}`}
+          className={`group flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform ${activeTab === 'create' ? 'text-primary' : 'text-slate-500'}`}
         >
-          <PlusCircle size={24} strokeWidth={activeTab === 'create' ? 2.5 : 2} />
-          <span className="text-[10px] font-medium">Create</span>
+          <div className={`p-2 rounded-full transition-all ${activeTab === 'create' ? 'bg-primary/10 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'group-hover:bg-white/5'}`}>
+            <PlusCircle size={22} strokeWidth={activeTab === 'create' ? 2.5 : 2} />
+          </div>
+          <span className="text-[10px] font-bold tracking-wide">CREATE</span>
         </button>
         <button
           onClick={() => setActiveTab('studio')}
-          className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform ${activeTab === 'studio' ? 'text-blue-500' : 'text-slate-500'}`}
+          className={`group flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform ${activeTab === 'studio' ? 'text-primary' : 'text-slate-500'}`}
         >
-          <ImageIcon size={24} strokeWidth={activeTab === 'studio' ? 2.5 : 2} />
-          <span className="text-[10px] font-medium">Studio</span>
+          <div className={`p-2 rounded-full transition-all ${activeTab === 'studio' ? 'bg-primary/10 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'group-hover:bg-white/5'}`}>
+            <ImageIcon size={22} strokeWidth={activeTab === 'studio' ? 2.5 : 2} />
+          </div>
+          <span className="text-[10px] font-bold tracking-wide">STUDIO</span>
         </button>
         <button
           onClick={() => setActiveTab('history')}
-          className={`flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform ${activeTab === 'history' ? 'text-blue-500' : 'text-slate-500'}`}
+          className={`group flex flex-col items-center justify-center w-full h-full space-y-1 active:scale-95 transition-transform ${activeTab === 'history' ? 'text-primary' : 'text-slate-500'}`}
         >
-          <History size={24} strokeWidth={activeTab === 'history' ? 2.5 : 2} />
-          <span className="text-[10px] font-medium">History</span>
+          <div className={`p-2 rounded-full transition-all ${activeTab === 'history' ? 'bg-primary/10 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'group-hover:bg-white/5'}`}>
+            <History size={22} strokeWidth={activeTab === 'history' ? 2.5 : 2} />
+          </div>
+          <span className="text-[10px] font-bold tracking-wide">HISTORY</span>
         </button>
       </div>
     </div>
