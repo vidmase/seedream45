@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, Image as ImageIcon, Plus, Trash2, Sliders, Upload, ShieldCheck, Loader2, Maximize2, Monitor, Tablet, Smartphone, Square, Zap } from 'lucide-react';
 import { Button } from './ui/Button';
 import { TextArea } from './ui/Input';
-import { ASPECT_RATIOS, RESOLUTIONS, getExplicitDimensions } from '../constants';
+import { ASPECT_RATIOS, RESOLUTIONS, getExplicitDimensions, MAX_FILE_SIZE } from '../constants';
 import { GenerationRequest, AspectRatio, Resolution } from '../types';
 
 interface LeftSidebarProps {
@@ -41,7 +41,20 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     const currentUrls = request.image_urls || [];
     const remainingSlots = 10 - currentUrls.length;
     if (remainingSlots <= 0) return;
-    let selectedFiles = Array.from(files).slice(0, remainingSlots);
+    let selectedFiles = Array.from(files).slice(0, remainingSlots) as File[];
+
+    // Validate file size
+    const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE);
+    if (oversizedFiles.length > 0) {
+      alert(`Some files are too large. Maximum allowed size is 20MB. \n\nOversized files: ${oversizedFiles.map(f => f.name).join(', ')}`);
+      selectedFiles = selectedFiles.filter(file => file.size <= MAX_FILE_SIZE);
+    }
+
+    if (selectedFiles.length === 0) {
+      event.target.value = '';
+      return;
+    }
+
     setIsProcessingFile(true);
     try {
       const newUrls = await Promise.all(selectedFiles.map(file => {

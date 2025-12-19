@@ -92,31 +92,32 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
         {isLoading ? (
           // Loading State
           <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-700 relative">
-            <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full mix-blend-screen animate-pulse-fast pointer-events-none" />
-            <div className="relative mb-8">
+            <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full mix-blend-screen animate-pulse-fast pointer-events-none scale-150" />
+            <div className="relative">
+              {/* Diffused Outer Glow */}
+              <div className="absolute inset-0 rounded-full blur-xl bg-primary/20 animate-pulse" />
+
               {/* Outer Ring */}
-              <div className="w-32 h-32 rounded-full border border-white/5 shadow-[0_0_50px_rgba(59,130,246,0.2)] animate-spin-slow"></div>
+              <div className="w-40 h-40 rounded-full border border-white/5 shadow-[0_0_80px_rgba(59,130,246,0.3)] animate-spin-slow duration-[3s]" />
+
+              {/* Middle Ring Reverse */}
+              <div className="absolute inset-4 rounded-full border border-primary/20 border-t-primary/50 border-r-transparent animate-spin duration-[4s] direction-reverse" />
+
               {/* Inner Spinner */}
-              <div className="absolute inset-0 w-32 h-32 rounded-full border-2 border-t-primary border-r-transparent border-b-primary/30 border-l-transparent animate-spin"></div>
+              <div className="absolute inset-0 w-40 h-40 rounded-full border-2 border-t-primary border-r-transparent border-b-primary/30 border-l-transparent animate-spin shadow-[0_0_30px_rgba(59,130,246,0.4)]" />
+
               {/* Core */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 bg-surface/50 backdrop-blur-md rounded-full border border-white/10 flex items-center justify-center shadow-inner">
-                  <Sparkles className="text-primary w-8 h-8 animate-pulse" />
+                <div className="w-24 h-24 bg-surface/30 backdrop-blur-xl rounded-full border border-white/10 flex items-center justify-center shadow-[inset_0_0_20px_rgba(59,130,246,0.2)]">
+                  <Sparkles className="text-primary w-10 h-10 animate-pulse drop-shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
                 </div>
               </div>
             </div>
-            <h3 className="text-2xl font-black text-white tracking-widest uppercase italic bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-200 to-white animate-shine bg-[length:200%_auto]">
-              Creating
-            </h3>
-            <p className="text-[10px] text-slate-400 mt-3 font-mono uppercase tracking-[0.3em] flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              GPU Cluster Active
-            </p>
           </div>
 
         ) : activeTask && activeTask.status === 'succeeded' && images.length ? (
           // Result State
-          <div className="relative w-full h-full flex items-center justify-center flex-col animate-in fade-in zoom-in-95 duration-700">
+          <div className="relative w-full h-full flex items-center justify-center flex-col animate-in fade-in zoom-in-95 duration-700 group">
             {isSafetyViolation ? (
               <div className="flex flex-col items-center gap-6 text-amber-500 bg-amber-500/5 p-16 rounded-[2rem] border border-amber-500/20 backdrop-blur-3xl shadow-[0_0_50px_rgba(245,158,11,0.1)]">
                 <ShieldAlert size={80} className="opacity-50 animate-pulse" />
@@ -158,7 +159,7 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
                 </div>
 
                 {/* Actions Bar */}
-                <div className="absolute bottom-8 flex flex-col items-center gap-6 animate-in slide-in-from-bottom-10 fade-in duration-700 delay-300 z-50">
+                <div className="absolute bottom-8 flex flex-col items-center gap-6 animate-in slide-in-from-bottom-10 fade-in duration-700 delay-300 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <Button
                     variant="primary"
                     size="lg"
@@ -167,7 +168,7 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
                     className="px-10 h-14 rounded-2xl font-black tracking-widest shadow-[0_0_40px_rgba(59,130,246,0.4)] border border-primary/20 hover:scale-105 transform transition-all active:scale-95 bg-surface/80 backdrop-blur-md hover:bg-primary group"
                   >
                     {isDownloading ? <Loader2 className="animate-spin mr-3" /> : <Download className="mr-3 w-5 h-5 group-hover:-translate-y-1 transition-transform" />}
-                    {isDownloading ? 'Acquiring...' : 'Save Masterpiece'}
+                    {isDownloading ? 'Acquiring...' : 'Download'}
                   </Button>
 
                   {images.length > 1 && (

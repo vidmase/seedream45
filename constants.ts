@@ -1,6 +1,7 @@
 export const API_KEY = import.meta.env.VITE_API_KEY || "";
 export const API_URL = "https://api.apimart.ai/v1/images/generations";
 export const API_TASK_URL = "https://api.apimart.ai/v1/tasks";
+export const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
 
 export const ASPECT_RATIOS = [
   { value: '1:1', label: 'Square' },
