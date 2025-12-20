@@ -1,7 +1,10 @@
-const GEMINI_API_KEY = "AIzaSyB5iQsqiuK7iGiNh3W0BNcRjfKkRX7g2Hk";
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${GEMINI_API_KEY}`;
 
 export const enhancePrompt = async (currentPrompt: string): Promise<string> => {
+  if (!GEMINI_API_KEY) {
+    throw new Error("Missing Gemini API Key");
+  }
   const systemInstruction = `You are a professional prompt engineer for AI image generation (e.g. Midjourney, Stable Diffusion). 
   Your task is to take a simple user prompt and enhance it into a highly detailed, descriptive, and artistic prompt.
   
