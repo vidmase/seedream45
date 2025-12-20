@@ -6,6 +6,7 @@ import { InputModal } from './ui/InputModal';
 import { ASPECT_RATIOS, RESOLUTIONS, getExplicitDimensions, MAX_FILE_SIZE } from '../constants';
 import { GenerationRequest, AspectRatio, Resolution } from '../types';
 import { PROMPT_PRESETS, PromptPreset } from './prompt_presets';
+import { enhancePrompt } from '../services/gemini';
 
 interface LeftSidebarProps {
   onRequestChange: (req: GenerationRequest) => void;
@@ -35,6 +36,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     const saved = localStorage.getItem('custom_prompt_presets');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('custom_prompt_presets', JSON.stringify(customPresets));
@@ -95,6 +98,19 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   };
 
 
+
+  const handleEnhance = async () => {
+    if (!request.prompt.trim() || isEnhancing) return;
+    setIsEnhancing(true);
+    try {
+      const enhanced = await enhancePrompt(request.prompt);
+      handleChange('prompt', enhanced);
+    } catch (error) {
+      console.error("Enhancement failed", error);
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
 
   const handleConfirmSave = (name: string) => {
     if (name) {
@@ -241,7 +257,21 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               Creative Prompt
             </label>
             <div className="flex items-center space-x-3">
-
+              <button
+                onClick={handleEnhance}
+                disabled={isEnhancing || !request.prompt.trim()}
+                className={`text-[10px] flex items-center transition-colors mr-2 ${isEnhancing ? 'text-primary' : 'text-slate-400 hover:text-primary'
+                  }`}
+                title="Enhance prompt with AI"
+              >
+                {isEnhancing ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3 h-3 mr-1" />
+                )}
+                {isEnhancing ? 'Enhancing...' : 'Enhance'}
+              </button>
+              <div className="w-px h-3 bg-white/10 mx-1" />
               <button
                 onClick={handleSavePreset}
                 className="text-[10px] flex items-center text-slate-400 hover:text-primary transition-colors"
