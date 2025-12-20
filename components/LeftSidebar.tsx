@@ -107,6 +107,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       handleChange('prompt', enhanced);
     } catch (error) {
       console.error("Enhancement failed", error);
+      alert("Failed to enhance prompt. Please check your API key or try again.");
     } finally {
       setIsEnhancing(false);
     }
@@ -226,6 +227,40 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       setIsProcessingFile(false);
       event.target.value = '';
     }
+  };
+
+  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
+
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    setDraggedItemIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    // Transparent drag image or default
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault(); // Necessary to allow dropping
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedItemIndex === null || draggedItemIndex === dropIndex) return;
+
+    const currentUrls = [...(request.image_urls || [])];
+    const itemToMove = currentUrls[draggedItemIndex];
+
+    // Remove from old index
+    currentUrls.splice(draggedItemIndex, 1);
+    // Insert at new index
+    currentUrls.splice(dropIndex, 0, itemToMove);
+
+    handleChange('image_urls', currentUrls);
+    setDraggedItemIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItemIndex(null);
   };
 
   return (
@@ -408,13 +443,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </div>
 
           {request.image_urls && request.image_urls.length > 0 && (
-            <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x">
+            <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x p-1">
               {request.image_urls.map((url, idx) => (
-                <div key={idx} className="relative w-16 h-16 flex-shrink-0 snap-start rounded-xl overflow-hidden border border-white/10 group shadow-lg">
+                <div
+                  key={idx}
+                  draggable={!isProcessingFile}
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragOver={(e) => handleDragOver(e, idx)}
+                  onDrop={(e) => handleDrop(e, idx)}
+                  onDragEnd={handleDragEnd}
+                  className={`relative w-16 h-16 flex-shrink-0 snap-start rounded-xl overflow-hidden border group shadow-lg cursor-grab active:cursor-grabbing transition-all ${draggedItemIndex === idx ? 'opacity-40 border-primary dashed scale-95' : 'border-white/10 hover:border-white/30'
+                    }`}
+                >
                   <div className="absolute top-0.5 left-0.5 bg-black/60 backdrop-blur-sm border border-white/10 text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold z-20 pointer-events-none font-mono">
                     #{idx + 1}
                   </div>
-                  <img src={url} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={`Ref ${idx + 1}`} />
+                  <img src={url} className="w-full h-full object-cover pointer-events-none select-none" alt={`Ref ${idx + 1}`} />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px] z-10">
                     <button onClick={() => handleChange('image_urls', request.image_urls?.filter((_, i) => i !== idx))} className="text-white hover:text-red-400 transition-colors">
                       <Trash2 size={16} />
