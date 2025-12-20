@@ -176,7 +176,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <div className="space-y-3">
           <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Batch Size</label>
           <div className="grid grid-cols-4 gap-2">
-            {[1, 2, 3, 4].map(n => (
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
               <button
                 key={n}
                 onClick={() => handleChange('n', n)}
