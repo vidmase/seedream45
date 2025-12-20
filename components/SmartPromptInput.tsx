@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Sparkles } from 'lucide-react';
 
 interface Variable {
@@ -7,7 +8,6 @@ interface Variable {
     value: string;
     type: string;
     preview?: string | null;
-    // allow other props
     [key: string]: any;
 }
 
@@ -16,8 +16,8 @@ interface SmartPromptInputProps {
     onChange: (value: string) => void;
     onAction?: (variable: Variable) => void;
     variables: Variable[];
-    className?: string; // Add className prop
-    placeholder?: string; // Add placeholder prop
+    className?: string;
+    placeholder?: string;
 }
 
 export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
@@ -32,21 +32,14 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [suggestionQuery, setSuggestionQuery] = useState('');
     const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
-    const [cursorPosition, setCursorPosition] = useState<{ top: number; left: number } | null>(null);
+    const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
 
-    // Sync value to innerHTML (controlled component pattern for contentEditable is tricky)
-    // We only update if the text content actually differs significantly or on mount
     useEffect(() => {
         if (!editorRef.current) return;
-
-        // 1. Check if the current DOM's text equivalent matches the new value.
-        // If it matches, we assume the DOM structure roughly corresponds to what we want
-        // or is a transition state (user typing) where we should NOT touch innerHTML to preserve cursor.
         const currentDOMText = htmlToText(editorRef.current);
         if (currentDOMText === value && document.activeElement === editorRef.current) {
             return;
         }
-
         const generatedHTML = textToHtml(value, variables);
         if (editorRef.current.innerHTML !== generatedHTML) {
             editorRef.current.innerHTML = generatedHTML;
@@ -59,38 +52,29 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;");
 
-        // Replace known image variables with chips
         vars.filter(v => v.type === 'image').forEach(v => {
-            // Regex to match exact word @id
             const regex = new RegExp(`@${v.id}\\b`, 'g');
-            // Render visual chip
             const chip = `
-        <span contenteditable="false" data-var="${v.id}" class="inline-flex items-center align-middle bg-surface/80 border border-white/10 rounded-md px-1.5 py-0.5 mx-0.5 select-none group vertical-mid">
-          <span class="w-4 h-4 rounded-sm bg-slate-700 overflow-hidden mr-1.5 border border-white/20 relative flex-shrink-0 block">
+        <span contenteditable="false" data-var="${v.id}" class="inline-flex items-center align-middle bg-slate-800 border border-white/20 rounded-md px-1.5 py-0.5 mx-0.5 select-none align-baseline shadow-sm my-0.5">
+          <span class="w-4 h-4 rounded-sm bg-black overflow-hidden mr-1.5 border border-white/20 flex-shrink-0 block">
              <img src="${v.preview}" class="w-full h-full object-cover block" />
           </span>
-          <span class="text-[10px] font-bold text-blue-200 font-mono">@${v.id}</span>
+          <span class="text-[11px] font-bold text-white tracking-tight shadow-black drop-shadow-sm font-sans">@${v.id}</span>
         </span>
       `;
-            // We wrap in spaces to ensure separation? No, replace exact.
             ht = ht.replace(regex, chip);
         });
-
         return ht;
     };
 
     const htmlToText = (element: HTMLElement) => {
-        // We want to extract text but respect our data-var chips
-        // Clone to not mess up DOM
         const clone = element.cloneNode(true) as HTMLElement;
         const chips = clone.querySelectorAll('[data-var]');
         chips.forEach(chip => {
             const id = chip.getAttribute('data-var');
             chip.replaceWith(`@${id}`);
         });
-        // Replace <br> with newline? contentEditable usually puts <div> or <br>
-        // For this simple input, converting innertext is usually enough if we handled chips
-        return clone.innerText; // innerText preserves newlines usually
+        return clone.innerText;
     };
 
     const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
@@ -98,12 +82,10 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
         const text = htmlToText(el);
         onChange(text);
 
-        // Trigger detection
         const sel = window.getSelection();
         if (sel && sel.rangeCount > 0) {
             const range = sel.getRangeAt(0);
             const textNode = range.startContainer;
-            // We look at text before caret
             if (textNode.nodeType === Node.TEXT_NODE) {
                 const str = textNode.textContent || '';
                 const cursor = range.startOffset;
@@ -113,10 +95,9 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
                 if (lastAt !== -1) {
                     const query = textBefore.slice(lastAt + 1);
                     if (!query.includes(' ')) {
-                        // Found trigger
-                        const rect = range.getBoundingClientRect();
-                        // Parent relative logic? just use fixed or absolute page coords
-                        setCursorPosition({ top: rect.bottom, left: rect.left });
+                        if (editorRef.current) {
+                            setContainerRect(editorRef.current.getBoundingClientRect());
+                        }
                         setSuggestionQuery(query);
                         setShowSuggestions(true);
                         setActiveSuggestionIndex(0);
@@ -128,102 +109,81 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
         setShowSuggestions(false);
     };
 
+    useEffect(() => {
+        if (!showSuggestions) return;
+        const updateRect = () => {
+            if (editorRef.current) {
+                setContainerRect(editorRef.current.getBoundingClientRect());
+            }
+        };
+        window.addEventListener('scroll', updateRect, true);
+        window.addEventListener('resize', updateRect);
+        return () => {
+            window.removeEventListener('scroll', updateRect, true);
+            window.removeEventListener('resize', updateRect);
+        };
+    }, [showSuggestions]);
+
     const filtered = useMemo(() => {
         const q = suggestionQuery.toLowerCase();
         const list = variables.filter(v =>
             v.id.toLowerCase().includes(q) ||
             v.label.toLowerCase().includes(q)
         );
-        // Grouping Logic
-        // Grouping Logic
         const grouped = list.reduce((acc, curr) => {
             let type = curr.type;
-            if (type === 'image') type = 'Reference Images';
-            else if (type === 'Custom') type = 'My Saved Prompts';
-            else if (!type) type = 'Other';
-
+            if (curr.type === 'image') type = 'Reference Images';
+            if (curr.type === 'Custom') type = 'My Saved Prompts';
             if (!acc[type]) acc[type] = [];
             acc[type].push(curr);
             return acc;
         }, {} as Record<string, Variable[]>);
 
-        const groupOrder = ['Reference Images', 'My Saved Prompts', 'Action', 'Style', 'Quality', 'Lighting', 'Camera'];
-        const sortedGroups = [...groupOrder, ...Object.keys(grouped).filter(g => !groupOrder.includes(g))].filter(g => grouped[g]?.length > 0);
+        const sortOrder = ['My Saved Prompts', 'Reference Images', 'Style', 'Lighting', 'Camera', 'Quality', 'Action'];
+        const sortedGroups = Object.keys(grouped).sort((a, b) => {
+            const idxA = sortOrder.indexOf(a);
+            const idxB = sortOrder.indexOf(b);
+            return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+        });
 
         const flat: Variable[] = [];
         sortedGroups.forEach(g => flat.push(...grouped[g]));
-        return { flat, grouped, sortedGroups };
-    }, [suggestionQuery, variables]);
+
+        return { grouped, sortedGroups, flat };
+    }, [variables, suggestionQuery]);
 
     const insertVariable = (variable: Variable) => {
-        if (!editorRef.current) return;
-
-        if (variable.type === 'Action') {
-            if (onAction) onAction(variable);
-            // Just close menu, parent should clear the text using onChange/value prop
-            setShowSuggestions(false); // Optimistically close
-            // Note: Parent updates value -> useEffect updates innerHTML -> Trigger removed
-            return;
-        }
-
-        // Check for content insertion
-        // We need to replace the @query with the variable content
-        const sel = window.getSelection();
-        if (!sel || sel.rangeCount === 0) return;
-        const range = sel.getRangeAt(0);
-        const textNode = range.startContainer;
-        if (textNode.nodeType === Node.TEXT_NODE) {
-            const str = textNode.textContent || '';
-            const cursor = range.startOffset;
-            const textBefore = str.slice(0, cursor);
-            const lastAt = textBefore.lastIndexOf('@');
-            if (lastAt !== -1) {
-                // Delete the trigger text
-                range.setStart(textNode, lastAt);
-                range.setEnd(textNode, cursor);
-                range.deleteContents();
-
-                if (variable.type === 'image') {
-                    // Insert CHIP
-                    // Creating the chip DOM
-                    const span = document.createElement('span');
-                    span.contentEditable = "false";
-                    span.dataset.var = variable.id;
-                    span.className = "inline-flex items-center align-middle bg-surface/80 border border-white/10 rounded-md px-1.5 py-0.5 mx-0.5 select-none align-middle group cursor-default";
-                    span.innerHTML = `
-                    <span class="w-4 h-4 rounded-sm bg-slate-700 overflow-hidden mr-1.5 border border-white/20 relative flex-shrink-0 block">
-                        <img src="${variable.preview}" class="w-full h-full object-cover block" />
-                    </span>
-                    <span class="text-[10px] font-bold text-blue-200 font-mono">@${variable.id}</span>
-                  `;
-                    // Insert a space after?
-                    range.insertNode(span);
-                    range.collapse(false); // move to end
-                    // Range often stuck inside the span or weirdly placed, insert a spacer text
-                    const spacer = document.createTextNode('\u00A0');
-                    range.insertNode(spacer);
-                    range.collapse(false);
-                } else {
-                    // Text Variable
-                    const text = document.createTextNode(variable.value + ' ');
-                    range.insertNode(text);
-                    range.collapse(false);
-                }
-
-                sel.removeAllRanges();
-                sel.addRange(range);
-
-                // Trigger update
-                const newText = htmlToText(editorRef.current);
-                onChange(newText);
-                setShowSuggestions(false);
+        const el = editorRef.current;
+        if (!el) return;
+        const rawText = value;
+        const lastIndex = rawText.lastIndexOf(`@${suggestionQuery}`);
+        if (lastIndex !== -1) {
+            if (variable.type === 'Action' && onAction) {
+                onAction(variable);
+                const before = rawText.substring(0, lastIndex);
+                const after = rawText.substring(lastIndex + 1 + suggestionQuery.length);
+                onChange(before + after);
+            } else if (variable.type === 'image') {
+                // Keep image variables as references
+                const before = rawText.substring(0, lastIndex);
+                const after = rawText.substring(lastIndex + 1 + suggestionQuery.length);
+                const newValue = `${before}@${variable.id} ${after}`;
+                onChange(newValue);
+            } else {
+                // Expand other variables (Style, Custom, etc.) to their text value
+                const before = rawText.substring(0, lastIndex);
+                const after = rawText.substring(lastIndex + 1 + suggestionQuery.length);
+                const valToInsert = variable.value;
+                const newValue = `${before}${valToInsert} ${after}`;
+                onChange(newValue);
             }
         }
+        setShowSuggestions(false);
+        editorRef.current?.focus();
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const handleKeyDown = (e: React.KeyboardEvent) => {
         if (!showSuggestions) return;
-
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             setActiveSuggestionIndex(prev => (prev + 1) % filtered.flat.length);
@@ -241,28 +201,33 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
     };
 
     return (
-        <div className={`relative ${className}`}>
+        <div className={`relative group ${className}`}>
             <div
                 ref={editorRef}
                 contentEditable
                 onInput={handleInput}
                 onKeyDown={handleKeyDown}
+                onBlur={() => {
+                    setTimeout(() => setShowSuggestions(false), 200);
+                }}
                 className="w-full h-full bg-transparent border-none focus:outline-none text-sm text-white leading-relaxed p-3 overflow-y-auto"
-                style={{ minHeight: '120px' }} // Ensure min height
+                style={{ minHeight: '120px' }}
                 data-placeholder={placeholder}
             />
-            {/* Placeholder - only show if empty */}
             {!value && (
                 <div className="absolute top-3 left-3 text-slate-600 pointer-events-none text-sm leading-relaxed">
                     {placeholder}
                 </div>
             )}
 
-            {/* Suggestions Menu */}
-            {showSuggestions && filtered.flat.length > 0 && cursorPosition && (
+            {showSuggestions && filtered.flat.length > 0 && containerRect && createPortal(
                 <div
-                    className="fixed bg-[#0f172a] border border-slate-700/50 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col ring-1 ring-white/10 w-72 animate-in fade-in zoom-in-95 duration-100"
-                    style={{ top: cursorPosition.top + 10, left: cursorPosition.left }}
+                    className="fixed bg-[#0f172a] border border-slate-700/50 rounded-xl shadow-2xl z-[9999] overflow-hidden flex flex-col ring-1 ring-white/10 w-72 animate-in fade-in zoom-in-95 duration-100"
+                    style={{
+                        top: containerRect.bottom + 8,
+                        left: containerRect.left,
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
                 >
                     <div className="px-4 py-3 border-b border-white/5 bg-gradient-to-r from-slate-900 to-slate-900/90 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
                         <span>Smart Variables</span>
@@ -324,7 +289,8 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
                             </div>
                         ))}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Image as ImageIcon, Plus, Trash2, Sliders, Upload, ShieldCheck, Loader2, Maximize2, Monitor, Tablet, Smartphone, Square, Zap, Bookmark, Dices } from 'lucide-react';
+import { Sparkles, Image as ImageIcon, Plus, Trash2, Sliders, Upload, ShieldCheck, Loader2, Maximize2, Monitor, Tablet, Smartphone, Square, Zap, Bookmark } from 'lucide-react';
 import { Button } from './ui/Button';
 import { SmartPromptInput } from './SmartPromptInput';
 import { InputModal } from './ui/InputModal';
@@ -94,25 +94,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     setIsSaveModalOpen(true);
   };
 
-  const handleDiceRoll = () => {
-    const styles = PROMPT_PRESETS.filter(p => p.type === 'Style');
-    const lighting = PROMPT_PRESETS.filter(p => p.type === 'Lighting');
-    const camera = PROMPT_PRESETS.filter(p => p.type === 'Camera');
 
-    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-    const randomLighting = lighting[Math.floor(Math.random() * lighting.length)];
-    const randomCamera = camera[Math.floor(Math.random() * camera.length)];
-
-    const additions = [randomStyle, randomLighting, randomCamera]
-      .filter(Boolean)
-      .map(p => p.value)
-      .join(', ');
-
-    const current = request.prompt.trim();
-    const separator = current ? (current.endsWith(',') ? ' ' : ', ') : '';
-
-    handleChange('prompt', current + separator + additions);
-  };
 
   const handleConfirmSave = (name: string) => {
     if (name) {
@@ -259,15 +241,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               Creative Prompt
             </label>
             <div className="flex items-center space-x-3">
-              <button
-                onClick={handleDiceRoll}
-                className="text-[10px] flex items-center text-slate-400 hover:text-primary transition-colors mr-2"
-                title="Surprise me! (Add random style/lighting/camera)"
-              >
-                <Dices className="w-3 h-3 mr-1" />
-                Surprise Me
-              </button>
-              <div className="w-px h-3 bg-white/10 mx-1" />
+
               <button
                 onClick={handleSavePreset}
                 className="text-[10px] flex items-center text-slate-400 hover:text-primary transition-colors"
