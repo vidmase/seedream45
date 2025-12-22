@@ -169,9 +169,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       </div>
 
       {/* Footer Info */}
-      <div className="p-3 bg-surface/80 backdrop-blur border-t border-white/5 text-[9px] text-slate-600 text-center uppercase tracking-widest font-bold">
-        SECURED BY SEEDREAM KERNEL
-      </div>
+
     </div>
   );
 };

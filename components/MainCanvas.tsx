@@ -68,12 +68,7 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
       {/* Top Bar Overlay */}
       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-20 pointer-events-none">
         <div className="flex space-x-2 pointer-events-auto">
-          {activeTask && (
-            <div className="px-4 py-2 bg-surface/80 backdrop-blur-xl rounded-full text-[10px] font-bold text-slate-400 border border-white/5 uppercase tracking-widest flex items-center shadow-lg animate-in fade-in slide-in-from-top-4">
-              <Layers className="w-3 h-3 mr-2 text-primary" />
-              Canvas Active
-            </div>
-          )}
+
         </div>
         {activeTask && (
           <div className="pointer-events-auto animate-in fade-in slide-in-from-top-4">

@@ -196,8 +196,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     });
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+  const processFiles = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
     const currentUrls = request.image_urls || [];
     const remainingSlots = 10 - currentUrls.length;
@@ -211,10 +210,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       selectedFiles = selectedFiles.filter(file => file.size <= MAX_FILE_SIZE);
     }
 
-    if (selectedFiles.length === 0) {
-      event.target.value = '';
-      return;
-    }
+    if (selectedFiles.length === 0) return;
 
     setIsProcessingFile(true);
     try {
@@ -222,11 +218,31 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       handleChange('image_urls', [...currentUrls, ...newUrls]);
     } catch (err) {
       console.error("Image processing failed", err);
-      // Optional: alert user
     } finally {
       setIsProcessingFile(false);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      await processFiles(files);
       event.target.value = '';
     }
+  };
+
+  const handleUploadDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await processFiles(e.dataTransfer.files);
+      e.dataTransfer.clearData();
+    }
+  };
+
+  const handleUploadDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
@@ -279,7 +295,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <h1 className="font-heading font-bold text-xl text-white tracking-tight leading-none">
             Vidma Studio <span className="text-primary font-black">AI</span>
           </h1>
-          <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Generative Suite v4.5</p>
+          <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Powered by Seedream 4.5</p>
         </div>
       </div>
 
@@ -425,6 +441,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <div className="relative group perspective-1000">
             <input type="file" id="image-upload" className="hidden" accept="image/*" multiple onChange={handleFileUpload} disabled={isProcessingFile} />
             <label htmlFor="image-upload"
+              onDrop={handleUploadDrop}
+              onDragOver={handleUploadDragOver}
               className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-slate-700 rounded-2xl cursor-pointer
               group-hover:border-primary/50 group-hover:bg-primary/5 transition-all duration-300 relative overflow-hidden"
             >

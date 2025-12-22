@@ -200,6 +200,30 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
         }
     };
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/plain');
+        document.execCommand('insertText', false, text);
+    };
+
+    const handleCopy = (e: React.ClipboardEvent) => {
+        e.preventDefault();
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return;
+
+        const range = sel.getRangeAt(0);
+        // data-placeholder is on the main div, checking if selection is inside editor
+        if (editorRef.current && !editorRef.current.contains(range.commonAncestorContainer)) {
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.appendChild(range.cloneContents());
+        // Use existing htmlToText to convert chips back to @id
+        const text = htmlToText(container);
+        e.clipboardData.setData('text/plain', text);
+    };
+
     return (
         <div className={`relative group ${className}`}>
             <div
@@ -207,6 +231,8 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
                 contentEditable
                 onInput={handleInput}
                 onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                onCopy={handleCopy}
                 onBlur={() => {
                     setTimeout(() => setShowSuggestions(false), 200);
                 }}
