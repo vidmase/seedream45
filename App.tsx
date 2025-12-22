@@ -18,7 +18,7 @@ const DEFAULT_REQUEST: GenerationRequest = {
   enable_safety_checker: false
 };
 
-const POLLING_INTERVAL = 3000;
+const POLLING_INTERVAL = 1000;
 
 const extractImages = (obj: any): string[] => {
   if (!obj) return [];
