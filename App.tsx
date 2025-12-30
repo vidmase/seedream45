@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { LeftSidebar } from './components/LeftSidebar';
 import { RightSidebar } from './components/RightSidebar';
 import { MainCanvas } from './components/MainCanvas';
+import { PinCodeGuard } from './components/PinCodeGuard';
 import { GenerationRequest, TaskHistoryItem } from './types';
 import { generateImage, getTaskStatus } from './services/api';
 import { PlusCircle, Image as ImageIcon, History, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Terminal } from 'lucide-react';
@@ -81,6 +82,7 @@ const extractImages = (obj: any): string[] => {
 export default function App() {
   const [request, setRequest] = useState<GenerationRequest>(DEFAULT_REQUEST);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem('app_unlocked') === 'true');
   const [history, setHistory] = useState<TaskHistoryItem[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'create' | 'studio' | 'history'>('create');
@@ -300,8 +302,20 @@ export default function App() {
 
   const activeTask = history.find(h => h.id === selectedTaskId) || null;
 
+  if (!isUnlocked) {
+    return (
+      <PinCodeGuard
+        correctPin="1256"
+        onSuccess={() => {
+          setIsUnlocked(true);
+          sessionStorage.setItem('app_unlocked', 'true');
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="flex h-screen h-[100dvh] w-screen bg-background text-slate-100 overflow-hidden font-sans flex-col lg:flex-row relative selection:bg-primary/30 selection:text-white">
+    <div className={`flex h-screen h-[100dvh] w-screen bg-background text-slate-100 overflow-hidden font-sans flex-col lg:flex-row relative selection:bg-primary/30 selection:text-white transition-opacity duration-1000 ${isUnlocked ? 'opacity-100' : 'opacity-0'}`}>
 
       {/* Background Effects */}
       <div className="absolute inset-0 z-0 bg-grid-pattern opacity-[0.15] pointer-events-none" />
@@ -319,11 +333,15 @@ export default function App() {
         {/* Desktop: Collapsible Floating Panel */}
         <div
           className={`
-            flex-shrink-0 transition-[width,opacity] duration-500 cubic-bezier(0.4, 0, 0.2, 1) relative z-40
+            flex-shrink-0 transition-[width,opacity,transform] duration-700 cubic-bezier(0.4, 0, 0.2, 1) relative z-40
             ${activeTab === 'create' ? 'flex flex-1 h-full w-full' : 'hidden lg:flex'}
             lg:flex-none
+            ${isUnlocked ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}
           `}
-          style={{ width: window.innerWidth >= 1024 ? (isLeftSidebarOpen ? '380px' : '0px') : '100%' }}
+          style={{
+            width: window.innerWidth >= 1024 ? (isLeftSidebarOpen ? '380px' : '0px') : '100%',
+            transitionDelay: '200ms'
+          }}
         >
           <div className="w-full h-full overflow-hidden border-r border-white/5 glass-panel relative z-10">
             <LeftSidebar request={request} onRequestChange={setRequest} onSubmit={onGenerateClick} isGenerating={isGenerating} />
@@ -347,9 +365,10 @@ export default function App() {
 
 
         {/* Main Canvas (Studio) */}
-        <div className={`flex-1 relative flex flex-col min-w-0 bg-transparent z-10
+        <div className={`flex-1 relative flex flex-col min-w-0 bg-transparent z-10 transition-all duration-700
           ${activeTab === 'studio' ? 'flex h-full w-full' : 'hidden lg:flex lg:h-full'}
-        `}>
+          ${isUnlocked ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
+        `} style={{ transitionDelay: '400ms' }}>
           <MainCanvas activeTask={activeTask} isGenerating={isGenerating} onClear={() => setSelectedTaskId(null)} />
         </div>
 
@@ -357,11 +376,15 @@ export default function App() {
         {/* Right Sidebar (History) */}
         <div
           className={`
-            flex-shrink-0 transition-[width,opacity] duration-500 cubic-bezier(0.4, 0, 0.2, 1) relative z-40
+            flex-shrink-0 transition-[width,opacity,transform] duration-700 cubic-bezier(0.4, 0, 0.2, 1) relative z-40
             ${activeTab === 'history' ? 'flex flex-1 h-full w-full' : 'hidden lg:flex'}
             lg:flex-none
+            ${isUnlocked ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
           `}
-          style={{ width: window.innerWidth >= 1024 ? (isRightSidebarOpen ? '320px' : '0px') : '100%' }}
+          style={{
+            width: window.innerWidth >= 1024 ? (isRightSidebarOpen ? '320px' : '0px') : '100%',
+            transitionDelay: '600ms'
+          }}
         >
           <div className="w-full h-full overflow-hidden border-l border-white/5 glass-panel relative z-10">
             <RightSidebar history={history} selectedTaskId={selectedTaskId} onSelectTask={handleSelectTask} onReuseParams={handleReuseParams} />
