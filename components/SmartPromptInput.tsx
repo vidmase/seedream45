@@ -139,7 +139,7 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
             return acc;
         }, {} as Record<string, Variable[]>);
 
-        const sortOrder = ['My Saved Prompts', 'Reference Images', 'Style', 'Lighting', 'Camera', 'Quality', 'Action'];
+        const sortOrder = ['My Saved Prompts', 'Reference Images', 'Style', 'Environment', 'Lighting', 'Camera', 'Composition', 'Material', 'Color', 'Quality', 'Action'];
         const sortedGroups = Object.keys(grouped).sort((a, b) => {
             const idxA = sortOrder.indexOf(a);
             const idxB = sortOrder.indexOf(b);
@@ -263,9 +263,20 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
                     <div className="max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-600/50">
                         {filtered.sortedGroups.map((group) => (
                             <div key={group}>
-                                <div className={`sticky top-0 z-10 px-4 py-1.5 bg-slate-900/95 backdrop-blur-sm text-[9px] font-bold uppercase tracking-wider border-y border-white/5 shadow-sm flex items-center ${group === 'Action' ? 'text-green-400' : 'text-orange-400'
+                                <div className={`sticky top-0 z-10 px-4 py-1.5 bg-slate-900/95 backdrop-blur-sm text-[9px] font-bold uppercase tracking-wider border-y border-white/5 shadow-sm flex items-center ${group === 'Action' ? 'text-green-400' :
+                                    group === 'Environment' ? 'text-blue-400' :
+                                        group === 'Color' ? 'text-pink-400' :
+                                            group === 'Composition' ? 'text-purple-400' :
+                                                group === 'Material' ? 'text-emerald-400' :
+                                                    'text-orange-400'
                                     }`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full mr-2 opacity-70 ${group === 'Action' ? 'bg-green-400' : 'bg-orange-400'}`}></span>
+                                    <span className={`w-1.5 h-1.5 rounded-full mr-2 opacity-70 ${group === 'Action' ? 'bg-green-400' :
+                                        group === 'Environment' ? 'bg-blue-400' :
+                                            group === 'Color' ? 'bg-pink-400' :
+                                                group === 'Composition' ? 'bg-purple-400' :
+                                                    group === 'Material' ? 'bg-emerald-400' :
+                                                        'bg-orange-400'
+                                        }`}></span>
                                     {group === 'Action' ? 'Commands' : group}
                                 </div>
                                 <div className="p-1.5 grid gap-0.5">
