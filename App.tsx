@@ -301,7 +301,7 @@ export default function App() {
   const activeTask = history.find(h => h.id === selectedTaskId) || null;
 
   return (
-    <div className="flex h-screen w-screen bg-background text-slate-100 overflow-hidden font-sans flex-col lg:flex-row relative selection:bg-primary/30 selection:text-white">
+    <div className="flex h-screen h-[100dvh] w-screen bg-background text-slate-100 overflow-hidden font-sans flex-col lg:flex-row relative selection:bg-primary/30 selection:text-white">
 
       {/* Background Effects */}
       <div className="absolute inset-0 z-0 bg-grid-pattern opacity-[0.15] pointer-events-none" />
@@ -319,11 +319,11 @@ export default function App() {
         {/* Desktop: Collapsible Floating Panel */}
         <div
           className={`
-            flex-shrink-0 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) relative z-40
+            flex-shrink-0 transition-[width,opacity] duration-500 cubic-bezier(0.4, 0, 0.2, 1) relative z-40
             ${activeTab === 'create' ? 'flex flex-1 h-full w-full' : 'hidden lg:flex'}
             lg:flex-none
           `}
-          style={{ width: isLeftSidebarOpen ? '380px' : '0px' }}
+          style={{ width: window.innerWidth >= 1024 ? (isLeftSidebarOpen ? '380px' : '0px') : '100%' }}
         >
           <div className="w-full h-full overflow-hidden border-r border-white/5 glass-panel relative z-10">
             <LeftSidebar request={request} onRequestChange={setRequest} onSubmit={onGenerateClick} isGenerating={isGenerating} />
@@ -357,11 +357,11 @@ export default function App() {
         {/* Right Sidebar (History) */}
         <div
           className={`
-            flex-shrink-0 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) relative z-40
+            flex-shrink-0 transition-[width,opacity] duration-500 cubic-bezier(0.4, 0, 0.2, 1) relative z-40
             ${activeTab === 'history' ? 'flex flex-1 h-full w-full' : 'hidden lg:flex'}
             lg:flex-none
           `}
-          style={{ width: isRightSidebarOpen ? '320px' : '0px' }}
+          style={{ width: window.innerWidth >= 1024 ? (isRightSidebarOpen ? '320px' : '0px') : '100%' }}
         >
           <div className="w-full h-full overflow-hidden border-l border-white/5 glass-panel relative z-10">
             <RightSidebar history={history} selectedTaskId={selectedTaskId} onSelectTask={handleSelectTask} onReuseParams={handleReuseParams} />
