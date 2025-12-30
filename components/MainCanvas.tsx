@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Loader2, Download, ShieldAlert, Sparkles, X, AlertTriangle, ChevronLeft, ChevronRight, Wand2 } from 'lucide-react';
+import { Layers, Loader2, Download, ShieldAlert, Sparkles, X, AlertTriangle, ChevronLeft, ChevronRight, Wand2, Maximize2 } from 'lucide-react';
 import { TaskHistoryItem } from '../types';
 import { Button } from './ui/Button';
+import { Lightbox } from './ui/Lightbox';
 
 interface MainCanvasProps {
   activeTask: TaskHistoryItem | null;
@@ -13,6 +14,7 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
   const [imgLoaded, setImgLoaded] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   useEffect(() => {
     setImgLoaded(false);
@@ -59,6 +61,17 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
   const isSafetyViolation = activeTask?.result?.has_nsfw_concepts?.[activeImageIndex];
   const isLoading = isGenerating || (activeTask && (activeTask.status === 'submitted' || activeTask.status === 'processing'));
 
+  // Batch progress calculation
+  const totalSubTasks = activeTask?.subTaskIds?.length || 0;
+  const completedSubTasks = totalSubTasks > 0
+    ? Object.values(activeTask?.subTaskStatuses || {}).filter((s: any) => {
+      const status = (s?.status || '').toLowerCase();
+      return ['succeeded', 'success', 'completed', 'done', 'failed'].includes(status);
+    }).length
+    : 0;
+  const isBatchJob = totalSubTasks > 1;
+  const progressPercent = totalSubTasks > 0 ? (completedSubTasks / totalSubTasks) * 100 : 0;
+
   const nextImage = () => { if (images.length > 1) { setImgLoaded(false); setActiveImageIndex((prev) => (prev + 1) % images.length); } };
   const prevImage = () => { if (images.length > 1) { setImgLoaded(false); setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length); } };
 
@@ -85,7 +98,7 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
       <div className="flex-1 flex items-center justify-center w-full h-full relative z-10 p-4 lg:p-10">
 
         {isLoading ? (
-          // Loading State
+          // Loading State with Batch Progress
           <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-700 relative">
             <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full mix-blend-screen animate-pulse-fast pointer-events-none scale-150" />
             <div className="relative">
@@ -108,7 +121,34 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
                 </div>
               </div>
             </div>
+
+            {/* Batch Progress Indicator */}
+            {isBatchJob && (
+              <div className="mt-8 flex flex-col items-center space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Progress Text */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-3xl font-black text-white tabular-nums">{completedSubTasks}</span>
+                  <span className="text-slate-500 text-lg font-bold">/</span>
+                  <span className="text-xl font-bold text-slate-400 tabular-nums">{totalSubTasks}</span>
+                  <span className="text-xs text-slate-500 font-bold uppercase tracking-widest ml-2">completed</span>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-48 h-2 bg-surface/50 rounded-full overflow-hidden border border-white/5">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+
+                {/* Status Hint */}
+                <p className="text-[10px] text-slate-600 uppercase tracking-widest font-medium">
+                  {completedSubTasks === totalSubTasks ? 'Finalizing...' : 'Generating batch...'}
+                </p>
+              </div>
+            )}
           </div>
+
 
         ) : activeTask && activeTask.status === 'succeeded' && images.length ? (
           // Result State
@@ -125,13 +165,23 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
               <>
                 <div className="relative group w-full h-full flex items-center justify-center">
                   {/* Image Container */}
-                  <div className="relative max-w-full max-h-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-surface/40 backdrop-blur-sm transition-transform duration-500">
+                  <div
+                    className="relative max-w-full max-h-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-surface/40 backdrop-blur-sm transition-transform duration-500 cursor-zoom-in hover:border-primary/30"
+                    onClick={() => imgLoaded && setIsLightboxOpen(true)}
+                  >
                     <img
                       src={currentImageUrl}
                       alt="Output"
                       className={`max-w-full max-h-[70vh] lg:max-h-[80vh] object-contain transition-all duration-700 ease-out ${imgLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-lg'}`}
                       onLoad={() => setImgLoaded(true)}
                     />
+
+                    {/* Zoom hint overlay */}
+                    {imgLoaded && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 transition-colors opacity-0 group-hover:opacity-100">
+                        <Maximize2 className="w-8 h-8 text-white drop-shadow-lg" />
+                      </div>
+                    )}
 
                     {!imgLoaded && (
                       <div className="absolute inset-0 flex items-center justify-center bg-surface/50 backdrop-blur-md">
@@ -223,6 +273,15 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
           </div>
         )}
       </div>
+
+      {/* Lightbox */}
+      <Lightbox
+        images={images}
+        initialIndex={activeImageIndex}
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        onDownload={handleDownload}
+      />
     </div>
   );
 };
