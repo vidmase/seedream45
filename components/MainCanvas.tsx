@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Loader2, Download, ShieldAlert, Sparkles, X, AlertTriangle, ChevronLeft, ChevronRight, Wand2, Maximize2 } from 'lucide-react';
+import { Layers, Loader2, Download, ShieldAlert, Sparkles, X, AlertTriangle, Wand2 } from 'lucide-react';
 import { TaskHistoryItem } from '../types';
 import { Button } from './ui/Button';
-import { Lightbox } from './ui/Lightbox';
 
 interface MainCanvasProps {
   activeTask: TaskHistoryItem | null;
@@ -12,13 +11,12 @@ interface MainCanvasProps {
 
 export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating, onClear }) => {
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setImgLoaded(false);
-    setActiveImageIndex(0);
+    setPreviewUrl(null);
   }, [activeTask?.id]);
 
   const handleDownload = async (url: string) => {
@@ -57,8 +55,7 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
   };
 
   const images = activeTask?.result?.images || [];
-  const currentImageUrl = images[activeImageIndex];
-  const isSafetyViolation = activeTask?.result?.has_nsfw_concepts?.[activeImageIndex];
+  const isSafetyViolation = activeTask?.result?.has_nsfw_concepts?.some(v => v);
   const isLoading = isGenerating || (activeTask && (activeTask.status === 'submitted' || activeTask.status === 'processing'));
 
   // Batch progress calculation
@@ -71,9 +68,6 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
     : 0;
   const isBatchJob = totalSubTasks > 1;
   const progressPercent = totalSubTasks > 0 ? (completedSubTasks / totalSubTasks) * 100 : 0;
-
-  const nextImage = () => { if (images.length > 1) { setImgLoaded(false); setActiveImageIndex((prev) => (prev + 1) % images.length); } };
-  const prevImage = () => { if (images.length > 1) { setImgLoaded(false); setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length); } };
 
   return (
     <div className="flex-1 bg-transparent relative overflow-hidden flex flex-col h-full items-center justify-center">
@@ -152,7 +146,7 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
 
         ) : activeTask && activeTask.status === 'succeeded' && images.length ? (
           // Result State
-          <div className="relative w-full h-full flex items-center justify-center flex-col animate-in fade-in zoom-in-95 duration-700 group">
+          <div className="relative w-full h-full flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-700">
             {isSafetyViolation ? (
               <div className="flex flex-col items-center gap-6 text-amber-500 bg-amber-500/5 p-16 rounded-[2rem] border border-amber-500/20 backdrop-blur-3xl shadow-[0_0_50px_rgba(245,158,11,0.1)]">
                 <ShieldAlert size={80} className="opacity-50 animate-pulse" />
@@ -162,81 +156,80 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
                 </div>
               </div>
             ) : (
-              <>
-                <div className="relative group w-full h-full flex items-center justify-center">
-                  {/* Image Container */}
-                  <div
-                    className="relative max-w-full max-h-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-surface/40 backdrop-blur-sm transition-transform duration-500 cursor-zoom-in hover:border-primary/30"
-                    onClick={() => imgLoaded && setIsLightboxOpen(true)}
-                  >
-                    <img
-                      src={currentImageUrl}
-                      alt="Output"
-                      className={`max-w-full max-h-[70vh] lg:max-h-[80vh] object-contain transition-all duration-700 ease-out ${imgLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-lg'}`}
-                      onLoad={() => setImgLoaded(true)}
-                    />
+              <div className="w-full h-full flex items-center justify-center overflow-y-auto px-2 lg:px-4 py-8 custom-scrollbar">
+                {images.length > 1 ? (
+                  /* 2x2 Grid Layout - Optimized for Screen Fit */
+                  <div className="grid grid-cols-2 gap-3 lg:gap-6 w-full max-w-4xl max-h-[75vh] items-center justify-center mx-auto">
+                    {images.map((img, idx) => (
+                      <div
+                        key={idx}
+                        className="relative group aspect-square rounded-2xl lg:rounded-3xl overflow-hidden border border-white/10 bg-surface/40 backdrop-blur-md transition-all duration-500 hover:border-primary/50 hover:shadow-[0_0_50px_rgba(59,130,246,0.15)] shadow-2xl h-full w-full"
+                      >
+                        <img
+                          src={img}
+                          alt={`Output ${idx + 1}`}
+                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                        />
 
-                    {/* Zoom hint overlay */}
-                    {imgLoaded && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/20 transition-colors opacity-0 group-hover:opacity-100">
-                        <Maximize2 className="w-8 h-8 text-white drop-shadow-lg" />
-                      </div>
-                    )}
+                        {/* Improved Download & Preview Overlay for Grid */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 lg:gap-3 bg-black/0 group-hover:bg-black/40 transition-all duration-500 opacity-0 group-hover:opacity-100">
+                          <button
+                            onClick={() => setPreviewUrl(img)}
+                            className="flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white rounded-xl font-bold text-[9px] lg:text-[10px] uppercase tracking-wider border border-white/20 transition-all hover:scale-105 active:scale-95"
+                          >
+                            See Bigger
+                          </button>
+                          <button
+                            onClick={() => handleDownload(img)}
+                            disabled={isDownloading}
+                            className="flex items-center gap-2 px-5 py-2.5 lg:px-6 lg:py-3 bg-primary text-white rounded-xl lg:rounded-2xl font-black text-[10px] lg:text-xs uppercase tracking-widest shadow-2xl hover:scale-110 active:scale-95 transition-all"
+                          >
+                            {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                            Download
+                          </button>
+                        </div>
 
-                    {!imgLoaded && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-surface/50 backdrop-blur-md">
-                        <Loader2 className="animate-spin text-primary w-10 h-10" />
+                        {/* Index Badge */}
+                        <div className="absolute top-3 left-3 lg:top-4 lg:left-4 px-2 py-1 lg:px-3 lg:py-1.5 rounded-lg lg:rounded-xl bg-black/60 backdrop-blur-md text-[8px] lg:text-[10px] font-black text-white/90 border border-white/10 uppercase tracking-widest">
+                          #{idx + 1}
+                        </div>
                       </div>
-                    )}
-
-                    {/* Navigation Buttons for Gallery */}
-                    {images.length > 1 && imgLoaded && (
-                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-4 flex justify-between pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <button onClick={prevImage} className="p-4 rounded-full bg-black/40 text-white hover:bg-primary hover:scale-110 transition-all pointer-events-auto backdrop-blur-md border border-white/10 shadow-lg">
-                          <ChevronLeft size={24} />
-                        </button>
-                        <button onClick={nextImage} className="p-4 rounded-full bg-black/40 text-white hover:bg-primary hover:scale-110 transition-all pointer-events-auto backdrop-blur-md border border-white/10 shadow-lg">
-                          <ChevronRight size={24} />
-                        </button>
-                      </div>
-                    )}
+                    ))}
                   </div>
-                </div>
-
-                {/* Actions Bar */}
-                <div className="absolute bottom-8 flex flex-col items-center gap-6 animate-in slide-in-from-bottom-10 fade-in duration-700 delay-300 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    onClick={() => handleDownload(currentImageUrl)}
-                    disabled={isDownloading || !imgLoaded}
-                    className="px-10 h-14 rounded-2xl font-black tracking-widest shadow-[0_0_40px_rgba(59,130,246,0.4)] border border-primary/20 hover:scale-105 transform transition-all active:scale-95 bg-surface/80 backdrop-blur-md hover:bg-primary group"
-                  >
-                    {isDownloading ? <Loader2 className="animate-spin mr-3" /> : <Download className="mr-3 w-5 h-5 group-hover:-translate-y-1 transition-transform" />}
-                    {isDownloading ? 'Acquiring...' : 'Download'}
-                  </Button>
-
-                  {images.length > 1 && (
-                    <div className="flex gap-3 px-4 py-3 bg-surface/60 rounded-2xl border border-white/5 backdrop-blur-xl shadow-2xl">
-                      {images.map((img, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => { setImgLoaded(false); setActiveImageIndex(idx); }}
-                          className={`
-                            w-12 h-12 rounded-xl overflow-hidden border-2 transition-all duration-300 
-                            ${activeImageIndex === idx
-                              ? 'border-primary scale-110 shadow-lg ring-2 ring-primary/20'
-                              : 'border-transparent opacity-50 hover:opacity-100 hover:scale-105'
-                            }
-                          `}
-                        >
-                          <img src={img} className="w-full h-full object-cover" alt="thumb" />
-                        </button>
-                      ))}
+                ) : (
+                  /* Single Image Layout with Improved Download */
+                  <div className="relative group max-w-3xl w-full flex flex-col items-center gap-8">
+                    <div
+                      className="relative w-full aspect-square lg:aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 bg-surface/40 backdrop-blur-sm transition-all duration-700 hover:border-primary/40 cursor-zoom-in"
+                      onClick={() => setPreviewUrl(images[0])}
+                    >
+                      <img
+                        src={images[0]}
+                        alt="Output"
+                        className={`w-full h-full object-contain transition-all duration-1000 ${imgLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
+                        onLoad={() => setImgLoaded(true)}
+                      />
+                      {!imgLoaded && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Loader2 className="animate-spin text-primary w-12 h-12" />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </>
+
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      onClick={() => handleDownload(images[0])}
+                      disabled={isDownloading || !imgLoaded}
+                      className="px-12 h-16 rounded-[2rem] font-black tracking-[0.2em] uppercase text-sm shadow-[0_20px_50px_rgba(59,130,246,0.4)] border border-primary/20 hover:scale-105 transform transition-all active:scale-95 bg-primary relative overflow-hidden group/btn"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:animate-shimmer" />
+                      {isDownloading ? <Loader2 className="animate-spin mr-3" /> : <Download className="mr-3 w-6 h-6 group-hover/btn:-translate-y-1 transition-transform" />}
+                      {isDownloading ? 'Processing...' : 'Download High Res'}
+                    </Button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         ) : activeTask && activeTask.status === 'failed' ? (
@@ -274,14 +267,43 @@ export const MainCanvas: React.FC<MainCanvasProps> = ({ activeTask, isGenerating
         )}
       </div>
 
-      {/* Lightbox */}
-      <Lightbox
-        images={images}
-        initialIndex={activeImageIndex}
-        isOpen={isLightboxOpen}
-        onClose={() => setIsLightboxOpen(false)}
-        onDownload={handleDownload}
-      />
+      {/* Simple Inline Preview Modal (Friendly for Mobile) */}
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-2xl animate-in fade-in duration-300 p-4"
+          onClick={() => setPreviewUrl(null)}
+        >
+          {/* Close Button */}
+          <button
+            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-[110]"
+            onClick={() => setPreviewUrl(null)}
+          >
+            <X size={24} />
+          </button>
+
+          <div
+            className="relative w-full max-w-5xl h-full flex flex-col items-center justify-center gap-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative w-full h-[70vh] flex items-center justify-center">
+              <img
+                src={previewUrl}
+                className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-500"
+                alt="Preview"
+              />
+            </div>
+
+            <button
+              onClick={() => handleDownload(previewUrl)}
+              disabled={isDownloading}
+              className="flex items-center gap-4 px-12 py-4 bg-primary text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-[0_0_50px_rgba(59,130,246,0.5)] hover:scale-105 active:scale-95 transition-all"
+            >
+              {isDownloading ? <Loader2 size={24} className="animate-spin" /> : <Download size={24} />}
+              {isDownloading ? 'Acquiring...' : 'Download This Image'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

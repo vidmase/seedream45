@@ -318,9 +318,11 @@ export default function App() {
     <div className={`flex h-screen h-[100dvh] w-screen bg-background text-slate-100 overflow-hidden font-sans flex-col lg:flex-row relative selection:bg-primary/30 selection:text-white transition-opacity duration-1000 ${isUnlocked ? 'opacity-100' : 'opacity-0'}`}>
 
       {/* Background Effects */}
+      {/* Background Effects */}
       <div className="absolute inset-0 z-0 bg-grid-pattern opacity-[0.15] pointer-events-none" />
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-pulse-fast" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-pulse-fast" style={{ animationDelay: '1s' }} />
+      <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full blur-[120px] pointer-events-none mix-blend-screen aurora-blob-1" />
+      <div className="absolute top-[10%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[120px] pointer-events-none mix-blend-screen aurora-blob-2" />
+      <div className="absolute bottom-[-20%] left-[20%] w-[80vw] h-[60vw] rounded-full blur-[100px] pointer-events-none mix-blend-screen aurora-blob-3" />
 
       {/* Mobile Content Area - Uses flex-1 to fill space above nav */}
       <div className="flex-1 w-full flex overflow-hidden lg:flex-row flex-col relative h-full z-10 backdrop-blur-[1px]">

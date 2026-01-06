@@ -292,10 +292,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </div>
         </div>
         <div>
-          <h1 className="font-heading font-bold text-xl text-white tracking-tight leading-none">
-            Vidma Studio <span className="text-primary font-black">AI</span>
+          <h1 className="font-heading font-bold text-xl text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400 tracking-tight leading-none">
+            Vidma Studio <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500 font-black">AI</span>
           </h1>
-          <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Powered by Seedream 4.5</p>
+          <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase opacity-80">Powered by Seedream 4.5</p>
         </div>
       </div>
 

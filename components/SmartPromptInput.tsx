@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 
 interface Variable {
     id: string;
@@ -200,6 +200,14 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
         }
     };
 
+    const handleClear = () => {
+        onChange('');
+        if (editorRef.current) {
+            editorRef.current.innerHTML = '';
+            editorRef.current.focus();
+        }
+    };
+
     const handlePaste = (e: React.ClipboardEvent) => {
         e.preventDefault();
         const text = e.clipboardData.getData('text/plain');
@@ -236,7 +244,7 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
                 onBlur={() => {
                     setTimeout(() => setShowSuggestions(false), 200);
                 }}
-                className="w-full h-full bg-transparent border-none focus:outline-none text-sm text-white leading-relaxed p-3 overflow-y-auto"
+                className="w-full h-full bg-transparent border-none focus:outline-none text-sm text-white leading-relaxed p-3 pr-8 overflow-y-auto"
                 style={{ minHeight: '120px' }}
                 data-placeholder={placeholder}
             />
@@ -244,6 +252,16 @@ export const SmartPromptInput: React.FC<SmartPromptInputProps> = ({
                 <div className="absolute top-3 left-3 text-slate-600 pointer-events-none text-sm leading-relaxed">
                     {placeholder}
                 </div>
+            )}
+
+            {value && (
+                <button
+                    onClick={handleClear}
+                    className="absolute top-3 right-3 p-1 rounded-md text-slate-500 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center z-10"
+                    title="Clear prompt"
+                >
+                    <X size={14} />
+                </button>
             )}
 
             {showSuggestions && filtered.flat.length > 0 && containerRect && createPortal(
