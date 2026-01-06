@@ -1,8 +1,9 @@
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY;
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 export const enhancePrompt = async (currentPrompt: string): Promise<string> => {
   if (!GEMINI_API_KEY) {
+    console.error("Gemini API Key is missing. Check .env.local for VITE_GEMINI_API_KEY or GEMINI_API_KEY");
     throw new Error("Missing Gemini API Key");
   }
   const systemInstruction = `You are a professional prompt engineer for AI image generation (e.g. Midjourney, Stable Diffusion). 
