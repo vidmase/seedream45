@@ -6,6 +6,7 @@ import { PinCodeGuard } from './components/PinCodeGuard';
 import { GenerationRequest, TaskHistoryItem } from './types';
 import { generateImage, getTaskStatus } from './services/api';
 import { PlusCircle, Image as ImageIcon, History, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Terminal } from 'lucide-react';
+import { ThreeDBackdrop } from './components/ThreeDBackdrop';
 
 const DEFAULT_REQUEST: GenerationRequest = {
   model: 'doubao-seedance-4-5',
@@ -317,9 +318,9 @@ export default function App() {
   return (
     <div className={`flex h-screen h-[100dvh] w-screen bg-background text-slate-100 overflow-hidden font-sans flex-col lg:flex-row relative selection:bg-primary/30 selection:text-white transition-opacity duration-1000 ${isUnlocked ? 'opacity-100' : 'opacity-0'}`}>
 
-      {/* Background Effects */}
-      {/* Background Effects */}
-      <div className="absolute inset-0 z-0 bg-grid-pattern opacity-[0.15] pointer-events-none" />
+      {/* 3D ambient scene */}
+      <ThreeDBackdrop />
+      <div className="absolute inset-0 z-[1] bg-grid-pattern opacity-[0.12] pointer-events-none" />
       <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full blur-[120px] pointer-events-none mix-blend-screen aurora-blob-1" />
       <div className="absolute top-[10%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[120px] pointer-events-none mix-blend-screen aurora-blob-2" />
       <div className="absolute bottom-[-20%] left-[20%] w-[80vw] h-[60vw] rounded-full blur-[100px] pointer-events-none mix-blend-screen aurora-blob-3" />
